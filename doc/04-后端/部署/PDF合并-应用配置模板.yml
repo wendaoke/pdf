@@ -1,0 +1,64 @@
+spring:
+  application:
+    name: pdf-merge-api
+  datasource:
+    url: jdbc:mysql://127.0.0.1:3306/pdf_toolkit?useUnicode=true&characterEncoding=utf8&serverTimezone=Asia/Shanghai
+    username: root
+    password: change_me
+    driver-class-name: com.mysql.cj.jdbc.Driver
+  data:
+    redis:
+      host: 127.0.0.1
+      port: 6379
+      password:
+      timeout: 3s
+
+server:
+  port: 8080
+  servlet:
+    context-path: /
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,prometheus
+
+pdfmerge:
+  limits:
+    n-files: 20
+    s-single-bytes: 52428800
+    s-total-bytes: 209715200
+  storage:
+    root-dir: /data/pdf-merge
+    input-ttl-hours: 24
+    output-ttl-hours: 24
+    disk-protect-threshold: 0.90
+  queue:
+    stream-key: stream:pdf:merge:task
+    dlq-stream-key: stream:pdf:merge:task:dlq
+    consumer-group: merge_worker_group
+    consumer-name: ${HOSTNAME:local}-${random.value}
+    read-count: 10
+    block-ms: 2000
+    max-retry: 2
+  download:
+    token-expire-minutes: 15
+  merge:
+    timeout-seconds: 120
+
+logging:
+  level:
+    root: INFO
+    com.company.pdfmerge: INFO
+
+---
+spring:
+  config:
+    activate:
+      on-profile: worker
+  application:
+    name: pdf-merge-worker
+
+server:
+  port: 0

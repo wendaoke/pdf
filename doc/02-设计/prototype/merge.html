@@ -1,0 +1,92 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>PDF合并工作台 | C版正式采用</title>
+  <link rel="stylesheet" href="./styles-c.css" />
+</head>
+<body>
+  <header class="nav">
+    <div class="container nav-inner">
+      <a class="brand" href="./index.html">PDF<span class="brand-dot">·</span>SUITE</a>
+      <nav class="nav-links">
+        <a href="./index.html">解决方案</a>
+        <a href="./merge.html">产品体验</a>
+        <a href="./result.html">结果交付</a>
+      </nav>
+    </div>
+  </header>
+
+  <main class="section">
+    <div class="container">
+      <span class="kicker">Merge Workspace · Scheme C</span>
+      <h1>PDF 合并工作台</h1>
+      <p class="muted">企业级处理体验：至少添加 2 个 PDF，列表顺序即最终输出顺序。</p>
+
+      <div class="card">
+        <div class="dropzone">
+          <h3>拖拽或上传文件，快速建立任务队列</h3>
+          <p class="muted">支持批量添加与追加上传；自动校验格式、数量与容量限制。</p>
+          <div class="actions" style="justify-content:center;">
+            <button class="btn btn-primary">上传 PDF 文件</button>
+            <button class="btn btn-outline">追加到任务列表</button>
+          </div>
+        </div>
+
+        <div class="file-list">
+          <h3>任务文件列表</h3>
+
+          <div class="file-row">
+            <div class="file-meta">
+              <strong>1. 封面.pdf (1.2MB)</strong>
+              <span class="tag tag-success">就绪</span>
+            </div>
+            <div class="actions">
+              <button class="btn btn-outline">上移</button>
+              <button class="btn btn-outline">下移</button>
+              <button class="btn btn-outline">删除</button>
+            </div>
+          </div>
+
+          <div class="file-row">
+            <div class="file-meta">
+              <strong>2. 正文.pdf (8.6MB)</strong>
+              <span class="tag tag-loading">上传中 66%</span>
+            </div>
+            <div class="progress"><div class="bar" style="width:66%"></div></div>
+          </div>
+
+          <div class="file-row">
+            <div class="file-meta">
+              <strong>3. 附录.docx (2.1MB)</strong>
+              <span class="tag tag-error">失败</span>
+            </div>
+            <div class="alert">仅支持 PDF 文件，请更换后重试。</div>
+            <div class="actions">
+              <button class="btn btn-outline">重试上传</button>
+              <button class="btn btn-outline">删除</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="actions">
+          <button class="btn btn-primary">开始合并任务</button>
+          <button class="btn btn-outline">清空并重建</button>
+          <a class="btn btn-gold" href="./result.html">查看交付结果</a>
+        </div>
+
+        <div class="alert">
+          当前存在失败文件，请先修复再提交任务。建议：删除非 PDF 文件后继续。
+        </div>
+
+        <div class="card" style="margin-top:14px;">
+          <strong>实时进度</strong>
+          <p class="muted">合并引擎执行中：正在处理第 2 / 3 个文件</p>
+          <div class="progress"><div class="bar" style="width:45%"></div></div>
+        </div>
+      </div>
+    </div>
+  </main>
+</body>
+</html>
