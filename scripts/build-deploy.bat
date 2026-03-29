@@ -66,6 +66,13 @@ if not defined WORKER_JAR (
   exit /b 1
 )
 copy /y "%BACKEND_DIR%\pdf-merge-worker\target\%WORKER_JAR%" "%DIST_DIR%\backend\pdf-merge-worker.jar" >nul
+copy /y "%~dp0start-backend-prod.sh" "%DIST_DIR%\backend\" >nul 2>&1
+copy /y "%~dp0stop-backend-prod.sh" "%DIST_DIR%\backend\" >nul 2>&1
+copy /y "%~dp0application-prod.yml.example" "%DIST_DIR%\backend\application-prod.yml.example" >nul 2>&1
+python "%~dp0normalize-sh-lf.py" "%DIST_DIR%\backend" 2>nul
+if errorlevel 1 (
+  echo WARNING: python not found or normalize-sh-lf failed - if deploying to Linux, run: sed -i "s/\r$//" *.sh in backend folder
+)
 if exist "%FRONTEND_DIR%\.next\standalone" (
   robocopy "%FRONTEND_DIR%\.next\standalone" "%DIST_DIR%\frontend" /E /NFL /NDL /NJH /NJS >nul
 ) else (
@@ -87,9 +94,9 @@ exit /b 0
 echo Deploy hint:>"%DIST_DIR%\DEPLOY_HINT.txt"
 echo.>>"%DIST_DIR%\DEPLOY_HINT.txt"
 echo 1^) Start backend - MySQL and Redis required:>>"%DIST_DIR%\DEPLOY_HINT.txt"
-echo    cd /d "%DIST_DIR%\backend">>"%DIST_DIR%\DEPLOY_HINT.txt"
-echo    start /b java -jar "pdf-merge-api.jar">>"%DIST_DIR%\DEPLOY_HINT.txt"
-echo    start /b java -jar "pdf-merge-worker.jar" --spring.profiles.active=worker>>"%DIST_DIR%\DEPLOY_HINT.txt"
+echo    Windows: scripts\start-prod.bat>>"%DIST_DIR%\DEPLOY_HINT.txt"
+echo    Linux: cd "%DIST_DIR%\backend" ^&^& chmod +x *.sh ^&^& ./start-backend-prod.sh>>"%DIST_DIR%\DEPLOY_HINT.txt"
+echo    ^(config: ..\config\application.yml ; stop: ./stop-backend-prod.sh^)>>"%DIST_DIR%\DEPLOY_HINT.txt"
 echo.>>"%DIST_DIR%\DEPLOY_HINT.txt"
 echo 2^) Start frontend:>>"%DIST_DIR%\DEPLOY_HINT.txt"
 echo    cd /d "%DIST_DIR%\frontend">>"%DIST_DIR%\DEPLOY_HINT.txt"
