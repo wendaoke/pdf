@@ -46,6 +46,9 @@ pdfmerge:
     token-expire-minutes: 15
   merge:
     timeout-seconds: 120
+  cors:
+    allowed-origin-patterns:
+      - "https://pdf.veryservice.com.cn"
 
 logging:
   level:

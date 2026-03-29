@@ -32,6 +32,9 @@ public class WebCorsConfiguration {
                     config.addAllowedOriginPattern(pattern.trim());
                 }
             }
+            // 配置了线上域名后仍允许本机浏览器（Next dev / start-prod 等），否则预检无 Allow-Origin
+            config.addAllowedOriginPattern("http://localhost:*");
+            config.addAllowedOriginPattern("http://127.0.0.1:*");
         }
         config.addAllowedHeader("*");
         config.addAllowedMethod("*");

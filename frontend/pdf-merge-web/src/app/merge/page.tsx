@@ -1,6 +1,6 @@
 "use client";
 
-import { Alert, Button, Card, Space, Typography, message } from "antd";
+import { Alert, Button, Card, Space, message } from "antd";
 import { createDownloadToken, createTask, initUploads, parseMergeApiError, uploadPdfPut } from "@/features/pdf-merge/api/mergeApi";
 import { FileListSortable } from "@/features/pdf-merge/components/FileListSortable";
 import { MergeProgress } from "@/features/pdf-merge/components/MergeProgress";
@@ -131,7 +131,6 @@ export default function MergePage() {
   return (
     <AppShell activeKey="merge">
       <Space direction="vertical" size={16} style={{ width: "100%", maxWidth: 980 }}>
-        <Typography.Title level={2}>PDF 合并</Typography.Title>
         <UploadDropzone onSelect={handleSelect} />
         <Card>
           {files.length === 0 ? (

@@ -59,16 +59,16 @@ if not exist "%CONFIG_FILE%" (
     echo ============================================================
     echo First run: created config from template:
     echo   "%CONFIG_FILE%"
-    echo Edit MySQL/Redis there, then run this script again.
-    echo Java/Node will NOT start this time - exit code 1.
+    echo Edit MySQL/Redis/passwords as needed. Services start now; if API/worker fail,
+    echo fix the yml then run scripts\restart-prod.bat ^(or stop-prod + start-prod^).
     echo ============================================================
     echo.
+  ) else (
+    echo ERROR: config missing and template not found.
+    echo   CONFIG: "%CONFIG_FILE%"
+    echo   TEMPLATE: "%CONFIG_TEMPLATE%"
     exit /b 1
   )
-  echo ERROR: config missing and template not found.
-  echo   CONFIG: "%CONFIG_FILE%"
-  echo   TEMPLATE: "%CONFIG_TEMPLATE%"
-  exit /b 1
 )
 
 rem Backend listens on server.port (8080 in example yml). cmd /k keeps the window if startup fails.

@@ -8,10 +8,6 @@ export default function ToolsPage() {
   return (
     <AppShell activeKey="tools">
       <Space direction="vertical" size={16} style={{ width: "100%" }}>
-        <Typography.Title level={2} style={{ margin: 0 }}>
-          工具列表
-        </Typography.Title>
-        <Typography.Text type="secondary">MVP 优先：PDF 合并页完整可用，其它工具先做占位。</Typography.Text>
         <Row gutter={[16, 16]}>
           <Col xs={24} md={8}>
             <Card title="PDF 合并">
