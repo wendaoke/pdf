@@ -1,47 +1,24 @@
 package com.company.pdfmerge.common.entity;
 
-import jakarta.persistence.Column;
-import jakarta.persistence.Entity;
-import jakarta.persistence.Id;
-import jakarta.persistence.Table;
-import java.time.Instant;
+import java.time.LocalDateTime;
 
-@Entity
-@Table(name = "merge_task")
 public class MergeTaskEntity {
-    @Id
-    @Column(name = "task_id", nullable = false, length = 36)
     private String taskId;
-    @Column(name = "owner_type", nullable = false, length = 16)
     private String ownerType;
-    @Column(name = "owner_id", nullable = false, length = 64)
     private String ownerId;
-    @Column(name = "status", nullable = false, length = 16)
     private String status;
-    @Column(name = "file_count", nullable = false)
     private Integer fileCount;
-    @Column(name = "total_size_bytes", nullable = false)
     private Long totalSizeBytes;
-    @Column(name = "result_file_path", length = 1024)
     private String resultFilePath;
-    @Column(name = "result_file_name", length = 255)
     private String resultFileName;
-    @Column(name = "result_size_bytes")
     private Long resultSizeBytes;
-    @Column(name = "error_code", length = 64)
     private String errorCode;
-    @Column(name = "error_message", length = 1024)
     private String errorMessage;
-    @Column(name = "retry_count", nullable = false)
     private Integer retryCount = 0;
-    @Column(name = "version", nullable = false)
     private Integer version = 0;
-    @Column(name = "created_at", nullable = false)
-    private Instant createdAt;
-    @Column(name = "updated_at", nullable = false)
-    private Instant updatedAt;
-    @Column(name = "expired_at")
-    private Instant expiredAt;
+    private LocalDateTime createdAt;
+    private LocalDateTime updatedAt;
+    private LocalDateTime expiredAt;
 
     public String getTaskId() { return taskId; }
     public void setTaskId(String taskId) { this.taskId = taskId; }
@@ -69,10 +46,10 @@ public class MergeTaskEntity {
     public void setRetryCount(Integer retryCount) { this.retryCount = retryCount; }
     public Integer getVersion() { return version; }
     public void setVersion(Integer version) { this.version = version; }
-    public Instant getCreatedAt() { return createdAt; }
-    public void setCreatedAt(Instant createdAt) { this.createdAt = createdAt; }
-    public Instant getUpdatedAt() { return updatedAt; }
-    public void setUpdatedAt(Instant updatedAt) { this.updatedAt = updatedAt; }
-    public Instant getExpiredAt() { return expiredAt; }
-    public void setExpiredAt(Instant expiredAt) { this.expiredAt = expiredAt; }
+    public LocalDateTime getCreatedAt() { return createdAt; }
+    public void setCreatedAt(LocalDateTime createdAt) { this.createdAt = createdAt; }
+    public LocalDateTime getUpdatedAt() { return updatedAt; }
+    public void setUpdatedAt(LocalDateTime updatedAt) { this.updatedAt = updatedAt; }
+    public LocalDateTime getExpiredAt() { return expiredAt; }
+    public void setExpiredAt(LocalDateTime expiredAt) { this.expiredAt = expiredAt; }
 }

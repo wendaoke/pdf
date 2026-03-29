@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.company.pdfmerge.common.mapper.MergeTaskFileMapper">
+
+    <insert id="insert" useGeneratedKeys="true" keyProperty="id" keyColumn="id">
+        INSERT INTO merge_task_file (
+            task_id, order_index, file_id, origin_file_name, local_file_path, size_bytes,
+            mime_type, sha256, status, error_code, error_message, created_at, updated_at
+        ) VALUES (
+            #{taskId}, #{orderIndex}, #{fileId}, #{originFileName}, #{localFilePath}, #{sizeBytes},
+            #{mimeType}, #{sha256}, #{status}, #{errorCode}, #{errorMessage}, #{createdAt}, #{updatedAt}
+        )
+    </insert>
+
+    <insert id="insertBatch">
+        INSERT INTO merge_task_file (
+            task_id, order_index, file_id, origin_file_name, local_file_path, size_bytes,
+            mime_type, sha256, status, error_code, error_message, created_at, updated_at
+        ) VALUES
+        <foreach collection="list" item="item" separator=",">
+            (
+            #{item.taskId}, #{item.orderIndex}, #{item.fileId}, #{item.originFileName},
+            #{item.localFilePath}, #{item.sizeBytes}, #{item.mimeType}, #{item.sha256},
+            #{item.status}, #{item.errorCode}, #{item.errorMessage}, #{item.createdAt}, #{item.updatedAt}
+            )
+        </foreach>
+    </insert>
+
+    <select id="selectByTaskIdOrderByOrderIndexAsc" resultType="com.company.pdfmerge.common.entity.MergeTaskFileEntity">
+        SELECT * FROM merge_task_file WHERE task_id = #{taskId} ORDER BY order_index ASC
+    </select>
+</mapper>

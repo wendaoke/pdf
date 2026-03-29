@@ -1,13 +1,14 @@
 "use client";
 
 import { Alert, Button, Card, Space, Typography, message } from "antd";
-import { createDownloadToken, createTask, initUploads } from "@/features/pdf-merge/api/mergeApi";
+import { createDownloadToken, createTask, initUploads, parseMergeApiError, uploadPdfPut } from "@/features/pdf-merge/api/mergeApi";
 import { FileListSortable } from "@/features/pdf-merge/components/FileListSortable";
 import { MergeProgress } from "@/features/pdf-merge/components/MergeProgress";
 import { MergeResultPanel } from "@/features/pdf-merge/components/MergeResultPanel";
 import { UploadDropzone } from "@/features/pdf-merge/components/UploadDropzone";
 import { useMergePolling } from "@/features/pdf-merge/hooks/useMergePolling";
 import { useMergeStore } from "@/features/pdf-merge/store/useMergeStore";
+import type { MergeTaskViewModel, TaskStatus } from "@/features/pdf-merge/types/merge.types";
 import { getErrorMessage } from "@/features/pdf-merge/utils/errorCodeMap";
 import { useEffect } from "react";
 import { AppShell } from "@/components/AppShell";
@@ -20,47 +21,103 @@ export default function MergePage() {
   const canSubmit = readyFiles.length >= 2 && !files.some((f) => f.status === "UPLOADING");
 
   const polling = useMergePolling(task.taskId, task.taskStatus === "QUEUED" || task.taskStatus === "PROCESSING");
+
   useEffect(() => {
-    if (polling.data?.status && polling.data.status !== task.taskStatus) {
-      setTask({
-        taskStatus: polling.data.status,
-        errorCode: polling.data.errorCode,
-        errorMessage: polling.data.errorMessage,
-        resultFileName: polling.data.result?.fileName
-      });
+    if (!polling.isError || !task.taskId) return;
+    if (task.taskStatus !== "QUEUED" && task.taskStatus !== "PROCESSING") return;
+    const detail = parseMergeApiError(polling.error);
+    setTask({
+      taskStatus: "FAILED",
+      errorMessage: detail,
+      errorCode: undefined,
+      stageText: undefined
+    });
+  }, [polling.isError, polling.error, task.taskId, task.taskStatus, setTask]);
+
+  useEffect(() => {
+    const d = polling.data;
+    if (!d?.status) return;
+    const statusChanged = d.status !== task.taskStatus;
+    const failedMetaCatchUp =
+      d.status === "FAILED" &&
+      task.taskStatus === "FAILED" &&
+      ((Boolean(d.errorCode) && d.errorCode !== task.errorCode) ||
+        (Boolean(d.errorMessage) && d.errorMessage !== task.errorMessage));
+    if (!statusChanged && !failedMetaCatchUp) return;
+
+    const patch: Partial<MergeTaskViewModel> = { taskStatus: d.status as TaskStatus };
+    if (d.status === "SUCCEEDED" && d.result?.fileName) {
+      patch.resultFileName = d.result.fileName;
+    } else if (statusChanged) {
+      patch.resultFileName = undefined;
     }
-  }, [polling.data, setTask, task.taskStatus]);
+    if (d.status === "FAILED") {
+      if (d.errorCode !== undefined) patch.errorCode = d.errorCode;
+      if (d.errorMessage !== undefined) patch.errorMessage = d.errorMessage;
+    } else if (statusChanged) {
+      patch.errorCode = undefined;
+      patch.errorMessage = undefined;
+    }
+
+    setTask(patch);
+  }, [polling.data, setTask, task.taskStatus, task.errorCode, task.errorMessage]);
 
   const handleSelect = async (picked: File[]) => {
     const onlyPdf = picked.filter((f) => f.type === "application/pdf" || f.name.toLowerCase().endsWith(".pdf"));
     if (onlyPdf.length !== picked.length) message.error("仅支持 PDF 文件");
     if (!onlyPdf.length) return;
 
-    const init = await initUploads({
-      files: onlyPdf.map((f) => ({ name: f.name, size: f.size }))
-    });
-    const next = init.uploadItems.map((item: { fileId: string; uploadToken: string }, i: number) => ({
-      id: item.fileId,
-      name: onlyPdf[i].name,
-      size: onlyPdf[i].size,
-      progress: 100,
-      status: "READY" as const,
-      uploadToken: item.uploadToken
-    }));
-    setFiles([...files, ...next]);
-    message.success("文件已就绪");
+    try {
+      const init = await initUploads({
+        files: onlyPdf.map((f) => ({ name: f.name, size: f.size }))
+      });
+      const uploadItems = init.uploadItems as { fileId: string; uploadToken: string }[];
+      const next: typeof files = [];
+      for (let i = 0; i < uploadItems.length; i++) {
+        const item = uploadItems[i];
+        const raw = onlyPdf[i];
+        await uploadPdfPut(item.fileId, item.uploadToken, raw);
+        next.push({
+          id: item.fileId,
+          name: raw.name,
+          size: raw.size,
+          progress: 100,
+          status: "READY",
+          uploadToken: item.uploadToken
+        });
+      }
+      setFiles([...files, ...next]);
+      message.success("文件已上传并就绪");
+    } catch (e: unknown) {
+      const msg = e instanceof Error ? e.message : "上传失败";
+      message.error(msg);
+    }
   };
 
   const handleSubmit = async () => {
     try {
-      setTask({ taskStatus: "QUEUED", stageText: "正在排队..." });
+      setTask({
+        taskStatus: "QUEUED",
+        stageText: "正在排队...",
+        taskId: undefined,
+        errorCode: undefined,
+        errorMessage: undefined,
+        resultFileName: undefined
+      });
       const data = await createTask({
         files: readyFiles.map((f, idx) => ({ fileId: f.id, orderIndex: idx + 1 }))
       });
       setTask({ taskId: data.taskId, taskStatus: "QUEUED", stageText: "正在合并文件..." });
     } catch (e: unknown) {
-      setTask({ taskStatus: "FAILED" });
-      message.error("提交失败，请重试");
+      const detail = parseMergeApiError(e);
+      setTask({
+        taskStatus: "FAILED",
+        errorMessage: detail,
+        errorCode: undefined,
+        taskId: undefined,
+        stageText: undefined
+      });
+      message.error(detail);
     }
   };
 
@@ -84,20 +141,16 @@ export default function MergePage() {
           )}
         </Card>
 
-        {task.taskStatus === "FAILED" && (
-          <Alert
-            type="error"
-            role="alert"
-            message={getErrorMessage(task.errorCode, task.errorMessage || "合并失败，请重试")}
-            showIcon
-          />
-        )}
-
         {(task.taskStatus === "QUEUED" || task.taskStatus === "PROCESSING" || task.taskStatus === "SUCCEEDED" || task.taskStatus === "FAILED") && (
           <Card>
             <MergeProgress
               status={task.taskStatus as "QUEUED" | "PROCESSING" | "SUCCEEDED" | "FAILED"}
               stageText={task.stageText}
+              errorDetail={
+                task.taskStatus === "FAILED"
+                  ? getErrorMessage(task.errorCode, task.errorMessage ?? "合并处理失败，请重试或更换文件")
+                  : undefined
+              }
             />
           </Card>
         )}

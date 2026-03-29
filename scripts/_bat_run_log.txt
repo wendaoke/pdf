@@ -1,4 +1,0 @@
-Mode: package
-Repo root: D:\workspace\ai-workspace\pdf\scripts\..
-Dist: D:\workspace\ai-workspace\pdf\scripts\..\dist\pdf-merge-deploy
-此时不应有 ...。

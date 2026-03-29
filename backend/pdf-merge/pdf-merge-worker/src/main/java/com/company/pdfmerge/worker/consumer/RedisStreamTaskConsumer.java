@@ -1,6 +1,7 @@
 package com.company.pdfmerge.worker.consumer;
 
 import com.company.pdfmerge.common.config.PdfMergeProperties;
+import com.company.pdfmerge.common.debug.SessionDebugLog;
 import com.company.pdfmerge.worker.service.MergeTaskHandler;
 import jakarta.annotation.PostConstruct;
 import java.time.Duration;
@@ -33,20 +34,65 @@ public class RedisStreamTaskConsumer {
         try {
             redisTemplate.opsForStream()
                     .createGroup(properties.getQueue().getStreamKey(), ReadOffset.latest(), properties.getQueue().getConsumerGroup());
-        } catch (Exception ignored) {
-            // already exists
+            // #region agent log
+            SessionDebugLog.line("H5", "RedisStreamTaskConsumer.initGroup", "createGroupOk", "{}");
+            // #endregion
+        } catch (Exception ex) {
+            // #region agent log
+            SessionDebugLog.line(
+                    "H5",
+                    "RedisStreamTaskConsumer.initGroup",
+                    "createGroupCatch",
+                    String.format(
+                            "{\"error\":\"%s\"}", SessionDebugLog.esc(ex.getMessage())));
+            // #endregion
+            // BUSYGROUP etc. — already exists
         }
     }
 
     @Scheduled(fixedDelay = 1000)
     public void consume() {
-        List<MapRecord<String, Object, Object>> records = redisTemplate.opsForStream().read(
-                Consumer.from(properties.getQueue().getConsumerGroup(), properties.getQueue().getConsumerName()),
-                StreamReadOptions.empty()
-                        .count(properties.getQueue().getReadCount())
-                        .block(Duration.ofMillis(properties.getQueue().getBlockMs())),
-                StreamOffset.create(properties.getQueue().getStreamKey(), ReadOffset.lastConsumed())
-        );
+        long blockMs = properties.getQueue().getBlockMs();
+        long t0 = System.currentTimeMillis();
+        List<MapRecord<String, Object, Object>> records;
+        // #region agent log
+        try {
+            records =
+                    redisTemplate
+                            .opsForStream()
+                            .read(
+                                    Consumer.from(
+                                            properties.getQueue().getConsumerGroup(),
+                                            properties.getQueue().getConsumerName()),
+                                    StreamReadOptions.empty()
+                                            .count(properties.getQueue().getReadCount())
+                                            .block(Duration.ofMillis(blockMs)),
+                                    StreamOffset.create(
+                                            properties.getQueue().getStreamKey(), ReadOffset.lastConsumed()));
+        } catch (Exception ex) {
+            long elapsed = System.currentTimeMillis() - t0;
+            SessionDebugLog.line(
+                    "H1",
+                    "RedisStreamTaskConsumer.consume",
+                    "xreadgroupFailed",
+                    String.format(
+                            "{\"blockMs\":%d,\"elapsedMs\":%d,\"error\":\"%s\",\"errorType\":\"%s\"}",
+                            blockMs,
+                            elapsed,
+                            SessionDebugLog.esc(ex.getMessage()),
+                            SessionDebugLog.esc(ex.getClass().getSimpleName())));
+            return;
+        }
+        long elapsedAfterRead = System.currentTimeMillis() - t0;
+        int recordCount = records == null ? -1 : records.size();
+        SessionDebugLog.line(
+                "H1",
+                "RedisStreamTaskConsumer.consume",
+                "xreadgroupOk",
+                String.format(
+                        "{\"blockMs\":%d,\"elapsedMs\":%d,\"recordCount\":%d}",
+                        blockMs, elapsedAfterRead, recordCount));
+        // #endregion
         if (records == null || records.isEmpty()) {
             return;
         }
@@ -56,7 +102,30 @@ public class RedisStreamTaskConsumer {
                 if (taskId != null) {
                     taskHandler.handleTask(taskId.toString());
                 }
-                redisTemplate.opsForStream().acknowledge(properties.getQueue().getStreamKey(), properties.getQueue().getConsumerGroup(), record.getId());
+                long ta = System.currentTimeMillis();
+                // #region agent log
+                try {
+                    redisTemplate
+                            .opsForStream()
+                            .acknowledge(
+                                    properties.getQueue().getStreamKey(),
+                                    properties.getQueue().getConsumerGroup(),
+                                    record.getId());
+                    SessionDebugLog.line(
+                            "H3",
+                            "RedisStreamTaskConsumer.consume",
+                            "ackOk",
+                            String.format(
+                                    "{\"ackElapsedMs\":%d}", System.currentTimeMillis() - ta));
+                } catch (Exception ackEx) {
+                    SessionDebugLog.line(
+                            "H3",
+                            "RedisStreamTaskConsumer.consume",
+                            "ackFailed",
+                            String.format(
+                                    "{\"error\":\"%s\"}", SessionDebugLog.esc(ackEx.getMessage())));
+                }
+                // #endregion
             } catch (Exception ex) {
                 // keep pending for retry
             }

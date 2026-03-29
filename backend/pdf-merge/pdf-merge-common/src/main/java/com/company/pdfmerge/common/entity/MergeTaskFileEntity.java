@@ -1,45 +1,22 @@
 package com.company.pdfmerge.common.entity;
 
-import jakarta.persistence.Column;
-import jakarta.persistence.Entity;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.GenerationType;
-import jakarta.persistence.Id;
-import jakarta.persistence.Table;
-import java.time.Instant;
+import java.time.LocalDateTime;
 
-@Entity
-@Table(name = "merge_task_file")
 public class MergeTaskFileEntity {
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
-    @Column(name = "task_id", nullable = false, length = 36)
     private String taskId;
-    @Column(name = "order_index", nullable = false)
     private Integer orderIndex;
-    @Column(name = "file_id", nullable = false, length = 36)
     private String fileId;
-    @Column(name = "origin_file_name", nullable = false, length = 255)
     private String originFileName;
-    @Column(name = "local_file_path", nullable = false, length = 1024)
     private String localFilePath;
-    @Column(name = "size_bytes", nullable = false)
     private Long sizeBytes;
-    @Column(name = "mime_type", length = 128)
     private String mimeType;
-    @Column(name = "sha256", length = 64)
     private String sha256;
-    @Column(name = "status", nullable = false, length = 24)
     private String status;
-    @Column(name = "error_code", length = 64)
     private String errorCode;
-    @Column(name = "error_message", length = 1024)
     private String errorMessage;
-    @Column(name = "created_at", nullable = false)
-    private Instant createdAt;
-    @Column(name = "updated_at", nullable = false)
-    private Instant updatedAt;
+    private LocalDateTime createdAt;
+    private LocalDateTime updatedAt;
 
     public Long getId() { return id; }
     public void setId(Long id) { this.id = id; }
@@ -65,8 +42,8 @@ public class MergeTaskFileEntity {
     public void setErrorCode(String errorCode) { this.errorCode = errorCode; }
     public String getErrorMessage() { return errorMessage; }
     public void setErrorMessage(String errorMessage) { this.errorMessage = errorMessage; }
-    public Instant getCreatedAt() { return createdAt; }
-    public void setCreatedAt(Instant createdAt) { this.createdAt = createdAt; }
-    public Instant getUpdatedAt() { return updatedAt; }
-    public void setUpdatedAt(Instant updatedAt) { this.updatedAt = updatedAt; }
+    public LocalDateTime getCreatedAt() { return createdAt; }
+    public void setCreatedAt(LocalDateTime createdAt) { this.createdAt = createdAt; }
+    public LocalDateTime getUpdatedAt() { return updatedAt; }
+    public void setUpdatedAt(LocalDateTime updatedAt) { this.updatedAt = updatedAt; }
 }

@@ -1,6 +1,17 @@
 -- PDF Merge MVP MySQL DDL
 -- Version: v1.0
 -- Charset: utf8mb4
+--
+-- One-shot init (creates database + tables), from repo root, example:
+--   mysql -u root -p < "doc/04-后端/数据库/PDF合并-MySQL-DDL.sql"
+-- Windows CMD:
+--   mysql -u root -p ^< "doc\04-后端\数据库\PDF合并-MySQL-DDL.sql"
+
+CREATE DATABASE IF NOT EXISTS pdf_toolkit
+  DEFAULT CHARACTER SET utf8mb4
+  DEFAULT COLLATE utf8mb4_0900_ai_ci;
+
+USE pdf_toolkit;
 
 CREATE TABLE IF NOT EXISTS merge_task (
     task_id              VARCHAR(36)  NOT NULL,

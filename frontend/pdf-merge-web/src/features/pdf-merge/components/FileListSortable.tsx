@@ -75,6 +75,7 @@ export function FileListSortable({
       <SortableContext items={ids} strategy={verticalListSortingStrategy}>
         <List
           bordered
+          rowKey="id"
           dataSource={files}
           renderItem={(file) => (
             <SortableRow

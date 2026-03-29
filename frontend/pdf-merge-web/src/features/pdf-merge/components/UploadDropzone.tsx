@@ -12,8 +12,14 @@ export function UploadDropzone({ onSelect }: { onSelect: (files: File[]) => void
       multiple
       accept=".pdf,application/pdf"
       showUploadList={false}
-      beforeUpload={(file: RcFile) => {
-        onSelect([file as unknown as File]);
+      beforeUpload={(file: RcFile, fileList: RcFile[]) => {
+        // Ant Design invokes beforeUpload once per file; only handle the last of the current batch
+        // so one multi-file dialog triggers one onSelect (and one uploads:init when batch size > 1).
+        const list = fileList ?? [];
+        const last = list[list.length - 1];
+        if (last && last.uid === file.uid) {
+          onSelect(list.map((f) => f as unknown as File));
+        }
         return false;
       }}
       onDrop={(e) => {

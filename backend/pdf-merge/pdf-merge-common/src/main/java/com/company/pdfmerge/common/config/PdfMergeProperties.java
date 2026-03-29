@@ -1,5 +1,7 @@
 package com.company.pdfmerge.common.config;
 
+import java.util.ArrayList;
+import java.util.List;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 
 @ConfigurationProperties(prefix = "pdfmerge")
@@ -9,6 +11,7 @@ public class PdfMergeProperties {
     private final Queue queue = new Queue();
     private final Download download = new Download();
     private final Merge merge = new Merge();
+    private final Cors cors = new Cors();
 
     public Limits getLimits() {
         return limits;
@@ -28,6 +31,27 @@ public class PdfMergeProperties {
 
     public Merge getMerge() {
         return merge;
+    }
+
+    public Cors getCors() {
+        return cors;
+    }
+
+    /** Browser CORS for separate frontend origin (e.g. Next.js on port 3000). */
+    public static class Cors {
+        private List<String> allowedOriginPatterns = new ArrayList<>(List.of(
+                "http://localhost:3000",
+                "http://127.0.0.1:3000",
+                "http://localhost:*",
+                "http://127.0.0.1:*"));
+
+        public List<String> getAllowedOriginPatterns() {
+            return allowedOriginPatterns;
+        }
+
+        public void setAllowedOriginPatterns(List<String> allowedOriginPatterns) {
+            this.allowedOriginPatterns = allowedOriginPatterns;
+        }
     }
 
     public static class Limits {

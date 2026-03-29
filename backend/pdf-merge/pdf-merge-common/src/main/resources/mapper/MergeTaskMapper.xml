@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.company.pdfmerge.common.mapper.MergeTaskMapper">
+
+    <insert id="insert">
+        INSERT INTO merge_task (
+            task_id, owner_type, owner_id, status, file_count, total_size_bytes,
+            result_file_path, result_file_name, result_size_bytes, error_code, error_message,
+            retry_count, version, created_at, updated_at, expired_at
+        ) VALUES (
+            #{taskId}, #{ownerType}, #{ownerId}, #{status}, #{fileCount}, #{totalSizeBytes},
+            #{resultFilePath}, #{resultFileName}, #{resultSizeBytes}, #{errorCode}, #{errorMessage},
+            #{retryCount}, #{version}, #{createdAt}, #{updatedAt}, #{expiredAt}
+        )
+    </insert>
+
+    <update id="update">
+        UPDATE merge_task SET
+            owner_type = #{ownerType},
+            owner_id = #{ownerId},
+            status = #{status},
+            file_count = #{fileCount},
+            total_size_bytes = #{totalSizeBytes},
+            result_file_path = #{resultFilePath},
+            result_file_name = #{resultFileName},
+            result_size_bytes = #{resultSizeBytes},
+            error_code = #{errorCode},
+            error_message = #{errorMessage},
+            retry_count = #{retryCount},
+            version = #{version},
+            created_at = #{createdAt},
+            updated_at = #{updatedAt},
+            expired_at = #{expiredAt}
+        WHERE task_id = #{taskId}
+    </update>
+
+    <select id="selectByTaskId" resultType="com.company.pdfmerge.common.entity.MergeTaskEntity">
+        SELECT * FROM merge_task WHERE task_id = #{taskId}
+    </select>
+
+    <select id="selectByTaskIdAndOwnerId" resultType="com.company.pdfmerge.common.entity.MergeTaskEntity">
+        SELECT * FROM merge_task WHERE task_id = #{taskId} AND owner_id = #{ownerId}
+    </select>
+</mapper>

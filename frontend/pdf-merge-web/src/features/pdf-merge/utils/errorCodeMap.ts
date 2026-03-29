@@ -10,7 +10,10 @@ const map: Record<string, string> = {
   MERGE_599_NETWORK: "网络异常，请检查连接后重试"
 };
 
-export function getErrorMessage(errorCode?: string, fallback = "操作失败，请重试") {
-  if (!errorCode) return fallback;
-  return map[errorCode] || fallback;
+export function getErrorMessage(errorCode?: string, fallback?: string) {
+  const fb = fallback?.trim() || "操作失败，请重试";
+  if (!errorCode) return fb;
+  const mapped = map[errorCode];
+  if (mapped) return mapped;
+  return fb;
 }

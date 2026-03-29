@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.company.pdfmerge.common.mapper.MergeDownloadTokenMapper">
+
+    <insert id="insert" useGeneratedKeys="true" keyProperty="id" keyColumn="id">
+        INSERT INTO merge_download_token (token, task_id, owner_id, expire_at, used, created_at)
+        VALUES (#{token}, #{taskId}, #{ownerId}, #{expireAt}, #{used}, #{createdAt})
+    </insert>
+
+    <update id="update">
+        UPDATE merge_download_token SET
+            token = #{token},
+            task_id = #{taskId},
+            owner_id = #{ownerId},
+            expire_at = #{expireAt},
+            used = #{used},
+            created_at = #{createdAt}
+        WHERE id = #{id}
+    </update>
+
+    <select id="selectByTokenAndTaskIdAndOwnerId" resultType="com.company.pdfmerge.common.entity.MergeDownloadTokenEntity">
+        SELECT * FROM merge_download_token
+        WHERE token = #{token} AND task_id = #{taskId} AND owner_id = #{ownerId}
+    </select>
+</mapper>

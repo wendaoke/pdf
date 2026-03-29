@@ -4,16 +4,21 @@ import { Alert, Progress, Typography } from "antd";
 
 export function MergeProgress({
   stageText,
-  status
+  status,
+  errorDetail
 }: {
   stageText?: string;
   status: "QUEUED" | "PROCESSING" | "SUCCEEDED" | "FAILED";
+  /** Shown when status is FAILED (e.g. backend errorCode / errorMessage). */
+  errorDetail?: string;
 }) {
   if (status === "SUCCEEDED") {
     return <Alert type="success" message="合并成功，文件已就绪" showIcon />;
   }
   if (status === "FAILED") {
-    return <Alert type="error" message="合并失败，请重试或更换文件" showIcon />;
+    return (
+      <Alert type="error" role="alert" message={errorDetail || "合并失败，请重试或更换文件"} showIcon />
+    );
   }
   return (
     <div>

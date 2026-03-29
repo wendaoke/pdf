@@ -1,20 +1,24 @@
 package com.company.pdfmerge.api.service;
 
 import com.company.pdfmerge.common.config.PdfMergeProperties;
+import com.company.pdfmerge.common.debug.SessionDebugLog;
 import com.company.pdfmerge.common.entity.MergeDownloadTokenEntity;
 import com.company.pdfmerge.common.entity.MergeTaskEntity;
 import com.company.pdfmerge.common.entity.MergeTaskFileEntity;
 import com.company.pdfmerge.common.enums.FileStatus;
 import com.company.pdfmerge.common.enums.OwnerType;
 import com.company.pdfmerge.common.enums.TaskStatus;
-import com.company.pdfmerge.common.repository.MergeDownloadTokenRepository;
-import com.company.pdfmerge.common.repository.MergeTaskFileRepository;
-import com.company.pdfmerge.common.repository.MergeTaskRepository;
+import com.company.pdfmerge.common.error.MergeErrorCode;
+import com.company.pdfmerge.common.mapper.MergeDownloadTokenMapper;
+import com.company.pdfmerge.common.mapper.MergeTaskFileMapper;
+import com.company.pdfmerge.common.mapper.MergeTaskMapper;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.StandardCopyOption;
 import java.time.Instant;
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.HashMap;
@@ -32,27 +36,29 @@ import org.springframework.transaction.annotation.Transactional;
 @Service
 public class MergeCoreService {
     private final PdfMergeProperties properties;
-    private final MergeTaskRepository taskRepository;
-    private final MergeTaskFileRepository taskFileRepository;
-    private final MergeDownloadTokenRepository tokenRepository;
+    private final MergeTaskMapper taskMapper;
+    private final MergeTaskFileMapper taskFileMapper;
+    private final MergeDownloadTokenMapper tokenMapper;
     private final StringRedisTemplate redisTemplate;
     private final Map<String, UploadSessionFile> uploadSessionStore = new ConcurrentHashMap<>();
 
     public MergeCoreService(PdfMergeProperties properties,
-                            MergeTaskRepository taskRepository,
-                            MergeTaskFileRepository taskFileRepository,
-                            MergeDownloadTokenRepository tokenRepository,
+                            MergeTaskMapper taskMapper,
+                            MergeTaskFileMapper taskFileMapper,
+                            MergeDownloadTokenMapper tokenMapper,
                             StringRedisTemplate redisTemplate) {
         this.properties = properties;
-        this.taskRepository = taskRepository;
-        this.taskFileRepository = taskFileRepository;
-        this.tokenRepository = tokenRepository;
+        this.taskMapper = taskMapper;
+        this.taskFileMapper = taskFileMapper;
+        this.tokenMapper = tokenMapper;
         this.redisTemplate = redisTemplate;
     }
 
     public Map<String, Object> initUploads(String ownerId, List<Map<String, Object>> files) {
-        if (files == null || files.size() < 2) {
-            throw new IllegalArgumentException("至少选择2个PDF");
+        // Ant Design Upload calls beforeUpload once per file; init may run with a single file per request.
+        // Require >= 2 PDFs only when creating the merge task (createTask).
+        if (files == null || files.isEmpty()) {
+            throw new IllegalArgumentException("请选择至少1个PDF");
         }
         if (files.size() > properties.getLimits().getNFiles()) {
             throw new IllegalArgumentException("文件数量超过上限");
@@ -90,6 +96,25 @@ public class MergeCoreService {
         return data;
     }
 
+    /**
+     * Writes raw PDF bytes to the path reserved at init, then marks session READY (same as completeUpload after a side-channel copy).
+     */
+    public Map<String, Object> receiveUpload(String ownerId, String fileId, String uploadToken, InputStream body)
+            throws IOException {
+        UploadSessionFile f = uploadSessionStore.get(ownerId + ":" + fileId);
+        if (f == null || !f.uploadToken.equals(uploadToken)) {
+            throw new IllegalArgumentException("上传令牌无效");
+        }
+        Path path = Path.of(f.localFilePath);
+        Files.createDirectories(path.getParent());
+        Files.copy(body, path, StandardCopyOption.REPLACE_EXISTING);
+        validatePdf(path);
+        f.status = FileStatus.READY.name();
+        Map<String, Object> data = new HashMap<>();
+        data.put("status", f.status);
+        return data;
+    }
+
     public Map<String, Object> completeUpload(String ownerId, String fileId, String uploadToken) throws IOException {
         UploadSessionFile f = uploadSessionStore.get(ownerId + ":" + fileId);
         if (f == null || !f.uploadToken.equals(uploadToken)) {
@@ -109,11 +134,18 @@ public class MergeCoreService {
 
     @Transactional
     public Map<String, Object> createTask(String ownerId, List<Map<String, Object>> files) {
+        if (files == null || files.size() < 2) {
+            throw new IllegalArgumentException("至少选择2个PDF");
+        }
+        if (files.size() > properties.getLimits().getNFiles()) {
+            throw new IllegalArgumentException("文件数量超过上限");
+        }
         String taskId = UUID.randomUUID().toString();
         List<Map<String, Object>> ordered = new ArrayList<>(files);
         ordered.sort(Comparator.comparingInt(m -> Integer.parseInt(String.valueOf(m.get("orderIndex")))));
         long totalSize = 0;
         List<MergeTaskFileEntity> entities = new ArrayList<>();
+        LocalDateTime now = LocalDateTime.now();
         for (Map<String, Object> row : ordered) {
             String fileId = String.valueOf(row.get("fileId"));
             int orderIndex = Integer.parseInt(String.valueOf(row.get("orderIndex")));
@@ -130,9 +162,12 @@ public class MergeCoreService {
             entity.setLocalFilePath(usf.localFilePath);
             entity.setSizeBytes(usf.size);
             entity.setStatus(FileStatus.READY.name());
-            entity.setCreatedAt(Instant.now());
-            entity.setUpdatedAt(Instant.now());
+            entity.setCreatedAt(now);
+            entity.setUpdatedAt(now);
             entities.add(entity);
+        }
+        if (totalSize > properties.getLimits().getSTotalBytes()) {
+            throw new IllegalArgumentException("总大小超过上限");
         }
         MergeTaskEntity task = new MergeTaskEntity();
         task.setTaskId(taskId);
@@ -143,10 +178,12 @@ public class MergeCoreService {
         task.setTotalSizeBytes(totalSize);
         task.setRetryCount(0);
         task.setVersion(0);
-        task.setCreatedAt(Instant.now());
-        task.setUpdatedAt(Instant.now());
-        taskRepository.save(task);
-        taskFileRepository.saveAll(entities);
+        task.setCreatedAt(now);
+        task.setUpdatedAt(now);
+        taskMapper.insert(task);
+        if (!entities.isEmpty()) {
+            taskFileMapper.insertBatch(entities);
+        }
 
         Map<String, String> message = new HashMap<>();
         message.put("taskId", taskId);
@@ -155,7 +192,26 @@ public class MergeCoreService {
         message.put("retryCount", "0");
         message.put("createdAt", Instant.now().toString());
         message.put("traceId", UUID.randomUUID().toString());
-        redisTemplate.opsForStream().add(MapRecord.create(properties.getQueue().getStreamKey(), message));
+        // #region agent log
+        long tx = System.currentTimeMillis();
+        try {
+            redisTemplate.opsForStream().add(MapRecord.create(properties.getQueue().getStreamKey(), message));
+            SessionDebugLog.line(
+                    "H4",
+                    "MergeCoreService.createTask",
+                    "xaddOk",
+                    String.format("{\"elapsedMs\":%d}", System.currentTimeMillis() - tx));
+        } catch (Exception ex) {
+            SessionDebugLog.line(
+                    "H4",
+                    "MergeCoreService.createTask",
+                    "xaddFailed",
+                    String.format(
+                            "{\"elapsedMs\":%d,\"error\":\"%s\"}",
+                            System.currentTimeMillis() - tx, SessionDebugLog.esc(ex.getMessage())));
+            throw ex;
+        }
+        // #endregion
 
         Map<String, Object> data = new HashMap<>();
         data.put("taskId", taskId);
@@ -164,13 +220,25 @@ public class MergeCoreService {
     }
 
     public Map<String, Object> getTask(String ownerId, String taskId) {
-        MergeTaskEntity task = taskRepository.findByTaskIdAndOwnerId(taskId, ownerId)
-                .orElseThrow(() -> new IllegalArgumentException("任务不存在"));
+        MergeTaskEntity task = taskMapper.selectByTaskIdAndOwnerId(taskId, ownerId);
+        if (task == null) {
+            throw new IllegalArgumentException("任务不存在");
+        }
         Map<String, Object> data = new HashMap<>();
         data.put("taskId", task.getTaskId());
         data.put("status", task.getStatus());
-        data.put("errorCode", task.getErrorCode());
-        data.put("errorMessage", task.getErrorMessage());
+        String errorCode = task.getErrorCode();
+        String errorMessage = task.getErrorMessage();
+        if (TaskStatus.FAILED.name().equals(task.getStatus())) {
+            if (errorCode == null || errorCode.isBlank()) {
+                errorCode = MergeErrorCode.MERGE_503_ENGINE_FAILED.name();
+            }
+            if (errorMessage == null || errorMessage.isBlank()) {
+                errorMessage = "PDF 合并失败，请检查文件是否损坏、加密或稍后重试";
+            }
+        }
+        data.put("errorCode", errorCode);
+        data.put("errorMessage", errorMessage);
         if (TaskStatus.SUCCEEDED.name().equals(task.getStatus())) {
             Map<String, Object> result = new HashMap<>();
             result.put("fileName", task.getResultFileName());
@@ -184,19 +252,22 @@ public class MergeCoreService {
 
     @Transactional
     public Map<String, Object> createDownloadToken(String ownerId, String taskId) {
-        MergeTaskEntity task = taskRepository.findByTaskIdAndOwnerId(taskId, ownerId)
-                .orElseThrow(() -> new IllegalArgumentException("任务不存在"));
+        MergeTaskEntity task = taskMapper.selectByTaskIdAndOwnerId(taskId, ownerId);
+        if (task == null) {
+            throw new IllegalArgumentException("任务不存在");
+        }
         if (!TaskStatus.SUCCEEDED.name().equals(task.getStatus())) {
             throw new IllegalArgumentException("任务尚未成功");
         }
+        LocalDateTime now = LocalDateTime.now();
         MergeDownloadTokenEntity token = new MergeDownloadTokenEntity();
         token.setToken("dl_" + UUID.randomUUID());
         token.setTaskId(taskId);
         token.setOwnerId(ownerId);
         token.setUsed(0);
-        token.setCreatedAt(Instant.now());
-        token.setExpireAt(Instant.now().plusSeconds(properties.getDownload().getTokenExpireMinutes() * 60L));
-        tokenRepository.save(token);
+        token.setCreatedAt(now);
+        token.setExpireAt(now.plusSeconds(properties.getDownload().getTokenExpireMinutes() * 60L));
+        tokenMapper.insert(token);
         Map<String, Object> data = new HashMap<>();
         data.put("downloadToken", token.getToken());
         data.put("expireAt", token.getExpireAt().toString());
@@ -205,16 +276,19 @@ public class MergeCoreService {
 
     @Transactional
     public Path verifyDownload(String ownerId, String taskId, String token) {
-        MergeDownloadTokenEntity entity = tokenRepository
-                .findByTokenAndTaskIdAndOwnerId(token, taskId, ownerId)
-                .orElseThrow(() -> new IllegalArgumentException("下载令牌无效"));
-        if (entity.getUsed() == 1 || entity.getExpireAt().isBefore(Instant.now())) {
+        MergeDownloadTokenEntity entity = tokenMapper.selectByTokenAndTaskIdAndOwnerId(token, taskId, ownerId);
+        if (entity == null) {
+            throw new IllegalArgumentException("下载令牌无效");
+        }
+        if (entity.getUsed() == 1 || entity.getExpireAt().isBefore(LocalDateTime.now())) {
             throw new IllegalArgumentException("下载令牌已失效");
         }
-        MergeTaskEntity task = taskRepository.findByTaskIdAndOwnerId(taskId, ownerId)
-                .orElseThrow(() -> new IllegalArgumentException("任务不存在"));
+        MergeTaskEntity task = taskMapper.selectByTaskIdAndOwnerId(taskId, ownerId);
+        if (task == null) {
+            throw new IllegalArgumentException("任务不存在");
+        }
         entity.setUsed(1);
-        tokenRepository.save(entity);
+        tokenMapper.update(entity);
         return Path.of(task.getResultFilePath());
     }
 

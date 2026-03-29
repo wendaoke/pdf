@@ -17,6 +17,7 @@
     <properties>
         <java.version>21</java.version>
         <spring-boot.version>4.0.4</spring-boot.version>
+        <mybatis-spring-boot.version>4.0.1</mybatis-spring-boot.version>
         <pdfbox.version>3.0.3</pdfbox.version>
         <maven.compiler.release>${java.version}</maven.compiler.release>
     </properties>
@@ -42,6 +43,8 @@
                     <version>3.13.0</version>
                     <configuration>
                         <release>${maven.compiler.release}</release>
+                        <!-- Spring MVC needs parameter names for @PathVariable / @RequestParam inference -->
+                        <parameters>true</parameters>
                     </configuration>
                 </plugin>
                 <plugin>
