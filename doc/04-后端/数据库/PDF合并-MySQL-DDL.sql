@@ -6,6 +6,8 @@
 --   mysql -u root -p < "doc/04-后端/数据库/PDF合并-MySQL-DDL.sql"
 -- Windows CMD:
 --   mysql -u root -p ^< "doc\04-后端\数据库\PDF合并-MySQL-DDL.sql"
+--
+-- 已有库增量升级请执行：doc/04-后端/数据库/PDF合并-MySQL-UPDATE.sql
 
 CREATE DATABASE IF NOT EXISTS pdf_toolkit
   DEFAULT CHARACTER SET utf8mb4
@@ -20,6 +22,9 @@ CREATE TABLE IF NOT EXISTS merge_task (
     status               VARCHAR(16)  NOT NULL,
     file_count           INT          NOT NULL,
     total_size_bytes     BIGINT       NOT NULL,
+    merge_progress_index INT         NULL COMMENT '当前正在处理的 order_index（1-based）',
+    merge_progress_done  INT         NOT NULL DEFAULT 0 COMMENT '已并入输出的源文件数',
+    merge_progress_name  VARCHAR(255) NULL COMMENT '当前源原始文件名（冗余）',
     result_file_path     VARCHAR(1024) NULL,
     result_file_name     VARCHAR(255)  NULL,
     result_size_bytes    BIGINT        NULL,
@@ -77,6 +82,23 @@ CREATE TABLE IF NOT EXISTS merge_download_token (
         ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
+CREATE TABLE IF NOT EXISTS user_feedback (
+    id                   BIGINT       NOT NULL AUTO_INCREMENT,
+    owner_id             VARCHAR(64)  NULL,
+    contact              VARCHAR(128) NULL,
+    category             VARCHAR(32)  NULL,
+    content              TEXT         NOT NULL,
+    context_json         JSON         NULL,
+    status               VARCHAR(16)  NOT NULL DEFAULT 'NEW',
+    created_at           TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
+    updated_at           TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3) ON UPDATE CURRENT_TIMESTAMP(3),
+    PRIMARY KEY (id),
+    KEY idx_owner_created (owner_id, created_at),
+    KEY idx_status_created (status, created_at)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+
 -- Optional init status check values:
 -- merge_task.status: DRAFT, QUEUED, PROCESSING, SUCCEEDED, FAILED, EXPIRED
 -- merge_task_file.status: PENDING_UPLOAD, UPLOADING, READY, FAILED
+-- user_feedback.status: NEW, REVIEWING, REPLIED, CLOSED (MVP 仅用 NEW)
+-- user_feedback.category: merge, upload, other

@@ -6,6 +6,7 @@ spring:
     username: root
     password: 123$%^abc
     driver-class-name: com.mysql.cj.jdbc.Driver
+  # 合并队列为 Redis Stream（XADD/XREADGROUP），需 Redis 5.0+；低版本或部分兼容端会报 unknown command 'XADD'
   data:
     redis:
       host: 127.0.0.1
@@ -29,7 +30,7 @@ management:
         include: health,info,metrics,prometheus
 pdfmerge:
   limits:
-    n-files: 20
+    n-files: 200
     s-single-bytes: 52428800
     s-total-bytes: 209715200
   storage:
@@ -46,3 +47,5 @@ pdfmerge:
     token-expire-minutes: 15
   merge:
     timeout-seconds: 120
+  feedback:
+    max-content-chars: 2000

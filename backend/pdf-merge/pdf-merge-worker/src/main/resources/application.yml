@@ -6,10 +6,13 @@ spring:
     username: root
     password: 123$%^abc
     driver-class-name: com.mysql.cj.jdbc.Driver
+  # 合并队列为 Redis Stream（XADD/XREADGROUP），需 Redis 5.0+
   data:
     redis:
       host: 127.0.0.1
       port: 6379
+      # 与 pdf-merge-api 保持一致；若 Redis 启用 requirepass 而此处缺失，Worker 无法 XREADGROUP，任务会永久停在 QUEUED
+      password: 123$%^abc
       timeout: 3s
 mybatis:
   mapper-locations: classpath*:mapper/**/*.xml

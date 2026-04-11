@@ -12,6 +12,14 @@ export interface UploadFileItem {
   errorMessage?: string;
 }
 
+/** Merge phase progress from GET /tasks/:id (aligned with API `progress`). */
+export interface MergeTaskProgressView {
+  totalFiles: number;
+  mergedFiles: number;
+  currentOrderIndex?: number;
+  currentFileName?: string;
+}
+
 export interface MergeTaskViewModel {
   taskId?: string;
   taskStatus: TaskStatus;
@@ -20,4 +28,5 @@ export interface MergeTaskViewModel {
   errorMessage?: string;
   resultFileName?: string;
   downloadToken?: string;
+  mergeProgress?: MergeTaskProgressView;
 }

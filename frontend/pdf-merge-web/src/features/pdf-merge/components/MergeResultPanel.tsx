@@ -15,7 +15,7 @@ export function MergeResultPanel({
     <Card>
       <Space direction="vertical">
         <Typography.Title level={4}>合并完成</Typography.Title>
-        <Typography.Text>{fileName || "merged.pdf"}</Typography.Text>
+        <Typography.Text>{fileName || "合并.pdf"}</Typography.Text>
         <Space>
           <Button type="primary" onClick={onDownload}>
             下载文件

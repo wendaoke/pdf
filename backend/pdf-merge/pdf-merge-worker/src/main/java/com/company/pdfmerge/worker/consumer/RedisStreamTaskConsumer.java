@@ -1,7 +1,6 @@
 package com.company.pdfmerge.worker.consumer;
 
 import com.company.pdfmerge.common.config.PdfMergeProperties;
-import com.company.pdfmerge.common.debug.SessionDebugLog;
 import com.company.pdfmerge.worker.service.MergeTaskHandler;
 import jakarta.annotation.PostConstruct;
 import java.time.Duration;
@@ -12,11 +11,14 @@ import org.springframework.data.redis.connection.stream.ReadOffset;
 import org.springframework.data.redis.connection.stream.StreamOffset;
 import org.springframework.data.redis.connection.stream.StreamReadOptions;
 import org.springframework.data.redis.core.StringRedisTemplate;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
 @Component
 public class RedisStreamTaskConsumer {
+    private static final Logger log = LoggerFactory.getLogger(RedisStreamTaskConsumer.class);
     private final StringRedisTemplate redisTemplate;
     private final PdfMergeProperties properties;
     private final MergeTaskHandler taskHandler;
@@ -34,18 +36,7 @@ public class RedisStreamTaskConsumer {
         try {
             redisTemplate.opsForStream()
                     .createGroup(properties.getQueue().getStreamKey(), ReadOffset.latest(), properties.getQueue().getConsumerGroup());
-            // #region agent log
-            SessionDebugLog.line("H5", "RedisStreamTaskConsumer.initGroup", "createGroupOk", "{}");
-            // #endregion
         } catch (Exception ex) {
-            // #region agent log
-            SessionDebugLog.line(
-                    "H5",
-                    "RedisStreamTaskConsumer.initGroup",
-                    "createGroupCatch",
-                    String.format(
-                            "{\"error\":\"%s\"}", SessionDebugLog.esc(ex.getMessage())));
-            // #endregion
             // BUSYGROUP etc. — already exists
         }
     }
@@ -53,9 +44,7 @@ public class RedisStreamTaskConsumer {
     @Scheduled(fixedDelay = 1000)
     public void consume() {
         long blockMs = properties.getQueue().getBlockMs();
-        long t0 = System.currentTimeMillis();
         List<MapRecord<String, Object, Object>> records;
-        // #region agent log
         try {
             records =
                     redisTemplate
@@ -70,29 +59,9 @@ public class RedisStreamTaskConsumer {
                                     StreamOffset.create(
                                             properties.getQueue().getStreamKey(), ReadOffset.lastConsumed()));
         } catch (Exception ex) {
-            long elapsed = System.currentTimeMillis() - t0;
-            SessionDebugLog.line(
-                    "H1",
-                    "RedisStreamTaskConsumer.consume",
-                    "xreadgroupFailed",
-                    String.format(
-                            "{\"blockMs\":%d,\"elapsedMs\":%d,\"error\":\"%s\",\"errorType\":\"%s\"}",
-                            blockMs,
-                            elapsed,
-                            SessionDebugLog.esc(ex.getMessage()),
-                            SessionDebugLog.esc(ex.getClass().getSimpleName())));
+            log.warn("Redis stream XREADGROUP failed (check auth/host/stream): {}", ex.toString());
             return;
         }
-        long elapsedAfterRead = System.currentTimeMillis() - t0;
-        int recordCount = records == null ? -1 : records.size();
-        SessionDebugLog.line(
-                "H1",
-                "RedisStreamTaskConsumer.consume",
-                "xreadgroupOk",
-                String.format(
-                        "{\"blockMs\":%d,\"elapsedMs\":%d,\"recordCount\":%d}",
-                        blockMs, elapsedAfterRead, recordCount));
-        // #endregion
         if (records == null || records.isEmpty()) {
             return;
         }
@@ -102,8 +71,6 @@ public class RedisStreamTaskConsumer {
                 if (taskId != null) {
                     taskHandler.handleTask(taskId.toString());
                 }
-                long ta = System.currentTimeMillis();
-                // #region agent log
                 try {
                     redisTemplate
                             .opsForStream()
@@ -111,23 +78,11 @@ public class RedisStreamTaskConsumer {
                                     properties.getQueue().getStreamKey(),
                                     properties.getQueue().getConsumerGroup(),
                                     record.getId());
-                    SessionDebugLog.line(
-                            "H3",
-                            "RedisStreamTaskConsumer.consume",
-                            "ackOk",
-                            String.format(
-                                    "{\"ackElapsedMs\":%d}", System.currentTimeMillis() - ta));
-                } catch (Exception ackEx) {
-                    SessionDebugLog.line(
-                            "H3",
-                            "RedisStreamTaskConsumer.consume",
-                            "ackFailed",
-                            String.format(
-                                    "{\"error\":\"%s\"}", SessionDebugLog.esc(ackEx.getMessage())));
+                } catch (Exception ignored) {
+                    // ignore ack failure
                 }
-                // #endregion
             } catch (Exception ex) {
-                // keep pending for retry
+                log.warn("merge stream record handling failed, message left pending for retry: {}", ex.toString());
             }
         }
     }

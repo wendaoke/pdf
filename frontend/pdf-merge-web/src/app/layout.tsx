@@ -9,11 +9,12 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="zh-CN">
       <body>
-        <Script
-          id="baidu-hm"
-          strategy="afterInteractive"
-          dangerouslySetInnerHTML={{
-            __html: `
+        {process.env.NODE_ENV === "production" ? (
+          <Script
+            id="baidu-hm"
+            strategy="afterInteractive"
+            dangerouslySetInnerHTML={{
+              __html: `
 var _hmt = _hmt || [];
 (function() {
   var hm = document.createElement("script");
@@ -21,8 +22,9 @@ var _hmt = _hmt || [];
   var s = document.getElementsByTagName("script")[0];
   s.parentNode.insertBefore(hm, s);
 })();`
-          }}
-        />
+            }}
+          />
+        ) : null}
         <Providers>{children}</Providers>
       </body>
     </html>

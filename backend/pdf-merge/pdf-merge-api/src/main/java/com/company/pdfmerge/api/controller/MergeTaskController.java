@@ -4,11 +4,13 @@ import com.company.pdfmerge.api.model.ApiResponse;
 import com.company.pdfmerge.api.service.MergeCoreService;
 import java.io.IOException;
 import java.io.InputStream;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
 import java.util.Map;
 import org.springframework.core.io.InputStreamResource;
+import org.springframework.http.ContentDisposition;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -28,6 +30,12 @@ public class MergeTaskController {
 
     public MergeTaskController(MergeCoreService mergeCoreService) {
         this.mergeCoreService = mergeCoreService;
+    }
+
+    /** 公开当前合并上限，便于前端在 init 失败（旧版 400 体无 limits）时仍能展示「最多 N 个」 */
+    @GetMapping("/limits")
+    public ApiResponse<Map<String, Object>> mergeLimits() {
+        return ApiResponse.success(mergeCoreService.mergeLimitsSnapshot());
     }
 
     @PostMapping("/uploads:init")
@@ -80,10 +88,15 @@ public class MergeTaskController {
     public ResponseEntity<InputStreamResource> download(@RequestHeader(value = "X-Owner-Id", required = false) String ownerId,
                                                         @PathVariable("taskId") String taskId,
                                                         @RequestParam("token") String token) throws IOException {
-        Path path = mergeCoreService.verifyDownload(normalizeOwner(ownerId), taskId, token);
+        MergeCoreService.DownloadTarget target =
+                mergeCoreService.verifyDownload(normalizeOwner(ownerId), taskId, token);
+        Path path = target.path();
+        ContentDisposition disposition = ContentDisposition.attachment()
+                .filename(target.fileName(), StandardCharsets.UTF_8)
+                .build();
         InputStreamResource resource = new InputStreamResource(Files.newInputStream(path));
         return ResponseEntity.ok()
-                .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=merged.pdf")
+                .header(HttpHeaders.CONTENT_DISPOSITION, disposition.toString())
                 .contentType(MediaType.APPLICATION_PDF)
                 .body(resource);
     }

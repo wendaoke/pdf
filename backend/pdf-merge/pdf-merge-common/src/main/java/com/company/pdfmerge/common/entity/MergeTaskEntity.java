@@ -9,6 +9,12 @@ public class MergeTaskEntity {
     private String status;
     private Integer fileCount;
     private Long totalSizeBytes;
+    /** Current source order_index (1-based), null when idle or finished. */
+    private Integer mergeProgressIndex;
+    /** Number of source PDFs fully merged into the output document. */
+    private Integer mergeProgressDone;
+    /** Redundant display name for the current source. */
+    private String mergeProgressName;
     private String resultFilePath;
     private String resultFileName;
     private Long resultSizeBytes;
@@ -32,6 +38,12 @@ public class MergeTaskEntity {
     public void setFileCount(Integer fileCount) { this.fileCount = fileCount; }
     public Long getTotalSizeBytes() { return totalSizeBytes; }
     public void setTotalSizeBytes(Long totalSizeBytes) { this.totalSizeBytes = totalSizeBytes; }
+    public Integer getMergeProgressIndex() { return mergeProgressIndex; }
+    public void setMergeProgressIndex(Integer mergeProgressIndex) { this.mergeProgressIndex = mergeProgressIndex; }
+    public Integer getMergeProgressDone() { return mergeProgressDone; }
+    public void setMergeProgressDone(Integer mergeProgressDone) { this.mergeProgressDone = mergeProgressDone; }
+    public String getMergeProgressName() { return mergeProgressName; }
+    public void setMergeProgressName(String mergeProgressName) { this.mergeProgressName = mergeProgressName; }
     public String getResultFilePath() { return resultFilePath; }
     public void setResultFilePath(String resultFilePath) { this.resultFilePath = resultFilePath; }
     public String getResultFileName() { return resultFileName; }

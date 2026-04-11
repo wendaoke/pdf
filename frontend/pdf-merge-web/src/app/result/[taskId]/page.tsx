@@ -31,7 +31,7 @@ export default function ResultPage() {
             <Alert type="warning" showIcon message="任务可能未完成，请返回合并页查看实时状态" />
           )}
           <Typography.Text>任务 ID：{taskId}</Typography.Text>
-          <Typography.Text>文件名：{task.resultFileName || "merged.pdf"}</Typography.Text>
+          <Typography.Text>文件名：{task.resultFileName || "合并.pdf"}</Typography.Text>
           <Space>
             <Button type="primary" disabled={!downloadUrl} onClick={() => window.open(downloadUrl, "_blank")}>
               下载文件

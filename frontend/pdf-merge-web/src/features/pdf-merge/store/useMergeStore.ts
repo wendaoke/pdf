@@ -30,7 +30,8 @@ const TASK_PATCH_CLEAR_UNDEFINED = new Set<keyof MergeTaskViewModel>([
   "errorMessage",
   "stageText",
   "resultFileName",
-  "downloadToken"
+  "downloadToken",
+  "mergeProgress"
 ]);
 
 export const useMergeStore = create<MergeState>((set) => ({

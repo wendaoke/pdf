@@ -5,14 +5,25 @@
     <insert id="insert">
         INSERT INTO merge_task (
             task_id, owner_type, owner_id, status, file_count, total_size_bytes,
+            merge_progress_index, merge_progress_done, merge_progress_name,
             result_file_path, result_file_name, result_size_bytes, error_code, error_message,
             retry_count, version, created_at, updated_at, expired_at
         ) VALUES (
             #{taskId}, #{ownerType}, #{ownerId}, #{status}, #{fileCount}, #{totalSizeBytes},
+            #{mergeProgressIndex}, #{mergeProgressDone}, #{mergeProgressName},
             #{resultFilePath}, #{resultFileName}, #{resultSizeBytes}, #{errorCode}, #{errorMessage},
             #{retryCount}, #{version}, #{createdAt}, #{updatedAt}, #{expiredAt}
         )
     </insert>
+
+    <update id="updateMergeProgress">
+        UPDATE merge_task SET
+            merge_progress_done = #{mergeProgressDone},
+            merge_progress_index = #{mergeProgressIndex},
+            merge_progress_name = #{mergeProgressName},
+            updated_at = #{updatedAt}
+        WHERE task_id = #{taskId}
+    </update>
 
     <update id="update">
         UPDATE merge_task SET
@@ -21,6 +32,9 @@
             status = #{status},
             file_count = #{fileCount},
             total_size_bytes = #{totalSizeBytes},
+            merge_progress_index = #{mergeProgressIndex},
+            merge_progress_done = #{mergeProgressDone},
+            merge_progress_name = #{mergeProgressName},
             result_file_path = #{resultFilePath},
             result_file_name = #{resultFileName},
             result_size_bytes = #{resultSizeBytes},

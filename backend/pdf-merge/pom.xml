@@ -35,6 +35,16 @@
     </dependencyManagement>
 
     <build>
+        <!-- 父工程无 main：跳过 spring-boot:run / repackage，避免在根上执行 run 报 mainClass；子模块显式 skip=false -->
+        <plugins>
+            <plugin>
+                <groupId>org.springframework.boot</groupId>
+                <artifactId>spring-boot-maven-plugin</artifactId>
+                <configuration>
+                    <skip>true</skip>
+                </configuration>
+            </plugin>
+        </plugins>
         <pluginManagement>
             <plugins>
                 <plugin>

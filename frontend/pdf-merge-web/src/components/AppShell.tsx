@@ -11,7 +11,8 @@ const { Header, Content, Footer } = Layout;
 const NAV = [
   { key: "home", href: "/", label: "首页" },
   { key: "merge", href: "/merge", label: "PDF 合并" },
-  { key: "tools", href: "/tools", label: "工具列表" }
+  { key: "tools", href: "/tools", label: "工具列表" },
+  { key: "feedback", href: "/feedback", label: "意见反馈" }
 ] as const;
 
 export function AppShell({ children, activeKey }: { children: ReactNode; activeKey: string }) {

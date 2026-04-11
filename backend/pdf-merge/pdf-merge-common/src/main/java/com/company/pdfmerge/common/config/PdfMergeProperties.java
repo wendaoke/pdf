@@ -12,6 +12,7 @@ public class PdfMergeProperties {
     private final Download download = new Download();
     private final Merge merge = new Merge();
     private final Cors cors = new Cors();
+    private final Feedback feedback = new Feedback();
 
     public Limits getLimits() {
         return limits;
@@ -35,6 +36,10 @@ public class PdfMergeProperties {
 
     public Cors getCors() {
         return cors;
+    }
+
+    public Feedback getFeedback() {
+        return feedback;
     }
 
     /** Browser CORS for separate frontend origin (e.g. Next.js on port 3000). */
@@ -108,5 +113,18 @@ public class PdfMergeProperties {
         private int timeoutSeconds = 120;
         public int getTimeoutSeconds() { return timeoutSeconds; }
         public void setTimeoutSeconds(int timeoutSeconds) { this.timeoutSeconds = timeoutSeconds; }
+    }
+
+    public static class Feedback {
+        /** Max UTF-16 code units for feedback content (MVP). */
+        private int maxContentChars = 2000;
+
+        public int getMaxContentChars() {
+            return maxContentChars;
+        }
+
+        public void setMaxContentChars(int maxContentChars) {
+            this.maxContentChars = maxContentChars;
+        }
     }
 }

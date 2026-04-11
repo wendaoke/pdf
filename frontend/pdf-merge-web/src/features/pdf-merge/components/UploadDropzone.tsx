@@ -3,23 +3,52 @@
 import { InboxOutlined } from "@ant-design/icons";
 import { Upload, Typography } from "antd";
 import type { RcFile } from "antd/es/upload";
+import { useCallback, useEffect, useRef } from "react";
 
 const { Dragger } = Upload;
 
+function rcListToFiles(list: RcFile[]): File[] {
+  const out: File[] = [];
+  for (const f of list) {
+    const raw = (f as unknown as { originFileObj?: File }).originFileObj;
+    if (raw instanceof File) out.push(raw);
+    else if (f instanceof File) out.push(f as File);
+  }
+  return out;
+}
+
 export function UploadDropzone({ onSelect }: { onSelect: (files: File[]) => void }) {
+  const latestListRef = useRef<RcFile[]>([]);
+  const flushTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const scheduleFlush = useCallback(() => {
+    if (flushTimerRef.current != null) {
+      clearTimeout(flushTimerRef.current);
+    }
+    flushTimerRef.current = setTimeout(() => {
+      flushTimerRef.current = null;
+      const files = rcListToFiles(latestListRef.current);
+      if (files.length) onSelect(files);
+    }, 0);
+  }, [onSelect]);
+
+  useEffect(
+    () => () => {
+      if (flushTimerRef.current != null) clearTimeout(flushTimerRef.current);
+    },
+    []
+  );
+
   return (
     <Dragger
       multiple
       accept=".pdf,application/pdf"
       showUploadList={false}
-      beforeUpload={(file: RcFile, fileList: RcFile[]) => {
-        // Ant Design invokes beforeUpload once per file; only handle the last of the current batch
-        // so one multi-file dialog triggers one onSelect (and one uploads:init when batch size > 1).
-        const list = fileList ?? [];
-        const last = list[list.length - 1];
-        if (last && last.uid === file.uid) {
-          onSelect(list.map((f) => f as unknown as File));
-        }
+      beforeUpload={(_file: RcFile, fileList: RcFile[]) => {
+        // antd 会对每个文件调一次 beforeUpload，且 fileList 逐步变长；若只在「最后一个 uid」里触发，
+        // 仍可能在内部列表累积后单次传入 > n-files。用 microtask 合并为一次 onSelect，只保留最终列表。
+        latestListRef.current = fileList ?? [];
+        scheduleFlush();
         return false;
       }}
       onDrop={(e) => {

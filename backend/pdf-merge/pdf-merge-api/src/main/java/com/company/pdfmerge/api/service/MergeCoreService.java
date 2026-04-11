@@ -1,7 +1,6 @@
 package com.company.pdfmerge.api.service;
 
 import com.company.pdfmerge.common.config.PdfMergeProperties;
-import com.company.pdfmerge.common.debug.SessionDebugLog;
 import com.company.pdfmerge.common.entity.MergeDownloadTokenEntity;
 import com.company.pdfmerge.common.entity.MergeTaskEntity;
 import com.company.pdfmerge.common.entity.MergeTaskFileEntity;
@@ -54,6 +53,15 @@ public class MergeCoreService {
         this.redisTemplate = redisTemplate;
     }
 
+    /** 当前进程合并上限（供 GET /limits 与成功 init 体使用） */
+    public Map<String, Object> mergeLimitsSnapshot() {
+        Map<String, Object> limits = new HashMap<>();
+        limits.put("N_files", properties.getLimits().getNFiles());
+        limits.put("S_single", properties.getLimits().getSSingleBytes());
+        limits.put("S_total", properties.getLimits().getSTotalBytes());
+        return limits;
+    }
+
     public Map<String, Object> initUploads(String ownerId, List<Map<String, Object>> files) {
         // Ant Design Upload calls beforeUpload once per file; init may run with a single file per request.
         // Require >= 2 PDFs only when creating the merge task (createTask).
@@ -61,7 +69,10 @@ public class MergeCoreService {
             throw new IllegalArgumentException("请选择至少1个PDF");
         }
         if (files.size() > properties.getLimits().getNFiles()) {
-            throw new IllegalArgumentException("文件数量超过上限");
+            throw new IllegalArgumentException(String.format(
+                    "文件数量超过上限：本次 %d 个，系统最多允许 %d 个。",
+                    files.size(),
+                    properties.getLimits().getNFiles()));
         }
         List<Map<String, Object>> items = new ArrayList<>();
         long total = 0;
@@ -86,13 +97,9 @@ public class MergeCoreService {
         if (total > properties.getLimits().getSTotalBytes()) {
             throw new IllegalArgumentException("总大小超过上限");
         }
-        Map<String, Object> limits = new HashMap<>();
-        limits.put("N_files", properties.getLimits().getNFiles());
-        limits.put("S_single", properties.getLimits().getSSingleBytes());
-        limits.put("S_total", properties.getLimits().getSTotalBytes());
         Map<String, Object> data = new HashMap<>();
         data.put("uploadItems", items);
-        data.put("limits", limits);
+        data.put("limits", mergeLimitsSnapshot());
         return data;
     }
 
@@ -138,7 +145,10 @@ public class MergeCoreService {
             throw new IllegalArgumentException("至少选择2个PDF");
         }
         if (files.size() > properties.getLimits().getNFiles()) {
-            throw new IllegalArgumentException("文件数量超过上限");
+            throw new IllegalArgumentException(String.format(
+                    "文件数量超过上限：本次 %d 个，系统最多允许 %d 个。",
+                    files.size(),
+                    properties.getLimits().getNFiles()));
         }
         String taskId = UUID.randomUUID().toString();
         List<Map<String, Object>> ordered = new ArrayList<>(files);
@@ -176,6 +186,9 @@ public class MergeCoreService {
         task.setStatus(TaskStatus.QUEUED.name());
         task.setFileCount(entities.size());
         task.setTotalSizeBytes(totalSize);
+        task.setMergeProgressDone(0);
+        task.setMergeProgressIndex(null);
+        task.setMergeProgressName(null);
         task.setRetryCount(0);
         task.setVersion(0);
         task.setCreatedAt(now);
@@ -192,26 +205,7 @@ public class MergeCoreService {
         message.put("retryCount", "0");
         message.put("createdAt", Instant.now().toString());
         message.put("traceId", UUID.randomUUID().toString());
-        // #region agent log
-        long tx = System.currentTimeMillis();
-        try {
-            redisTemplate.opsForStream().add(MapRecord.create(properties.getQueue().getStreamKey(), message));
-            SessionDebugLog.line(
-                    "H4",
-                    "MergeCoreService.createTask",
-                    "xaddOk",
-                    String.format("{\"elapsedMs\":%d}", System.currentTimeMillis() - tx));
-        } catch (Exception ex) {
-            SessionDebugLog.line(
-                    "H4",
-                    "MergeCoreService.createTask",
-                    "xaddFailed",
-                    String.format(
-                            "{\"elapsedMs\":%d,\"error\":\"%s\"}",
-                            System.currentTimeMillis() - tx, SessionDebugLog.esc(ex.getMessage())));
-            throw ex;
-        }
-        // #endregion
+        redisTemplate.opsForStream().add(MapRecord.create(properties.getQueue().getStreamKey(), message));
 
         Map<String, Object> data = new HashMap<>();
         data.put("taskId", taskId);
@@ -247,6 +241,7 @@ public class MergeCoreService {
         } else {
             data.put("result", null);
         }
+        data.put("progress", buildTaskProgress(task));
         return data;
     }
 
@@ -275,7 +270,7 @@ public class MergeCoreService {
     }
 
     @Transactional
-    public Path verifyDownload(String ownerId, String taskId, String token) {
+    public DownloadTarget verifyDownload(String ownerId, String taskId, String token) {
         MergeDownloadTokenEntity entity = tokenMapper.selectByTokenAndTaskIdAndOwnerId(token, taskId, ownerId);
         if (entity == null) {
             throw new IllegalArgumentException("下载令牌无效");
@@ -289,7 +284,24 @@ public class MergeCoreService {
         }
         entity.setUsed(1);
         tokenMapper.update(entity);
-        return Path.of(task.getResultFilePath());
+        String fileName = task.getResultFileName();
+        if (fileName == null || fileName.isBlank()) {
+            fileName = "合并.pdf";
+        }
+        return new DownloadTarget(Path.of(task.getResultFilePath()), fileName);
+    }
+
+    public record DownloadTarget(Path path, String fileName) {}
+
+    private Map<String, Object> buildTaskProgress(MergeTaskEntity task) {
+        Map<String, Object> progress = new HashMap<>();
+        int total = task.getFileCount() != null ? task.getFileCount() : 0;
+        progress.put("totalFiles", total);
+        int merged = task.getMergeProgressDone() != null ? task.getMergeProgressDone() : 0;
+        progress.put("mergedFiles", merged);
+        progress.put("currentOrderIndex", task.getMergeProgressIndex());
+        progress.put("currentFileName", task.getMergeProgressName());
+        return progress;
     }
 
     private Path inputFilePath(String fileId) {

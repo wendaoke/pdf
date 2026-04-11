@@ -32,7 +32,11 @@ function SortableRow({
         <Space>
           <Button type="text" icon={<HolderOutlined />} {...attributes} {...listeners} />
           <Typography.Text strong>{file.name}</Typography.Text>
-          <Tag color={file.status === "READY" ? "success" : file.status === "FAILED" ? "error" : "processing"}>
+          <Tag
+            color={
+              file.status === "READY" ? "success" : file.status === "FAILED" ? "error" : file.status === "PENDING_UPLOAD" ? "default" : "processing"
+            }
+          >
             {file.status}
           </Tag>
         </Space>

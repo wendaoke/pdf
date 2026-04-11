@@ -45,9 +45,11 @@ pdfmerge:
     s-total-bytes: 209715200
   merge:
     timeout-seconds: 120
+  feedback:
+    max-content-chars: 2000
   # 浏览器跨域：前端与 API 不同源时必须配置（否则预检 OPTIONS 无 CORS 头）。
   # 与 pdfmerge-common PdfMergeProperties.cors 一致，键为 allowed-origin-patterns。
-  # 若此处非空，API 仍会额外允许 http://localhost:* 与 http://127.0.0.1:*（本地 Next / start-prod）。
+  # 无论此处是否配置，API 均会允许本机常见 Origin（localhost/127.0.0.1 及 :3000 等），便于本地连线上 API。
   cors:
     allowed-origin-patterns:
       - "https://pdf.veryservice.com.cn"
