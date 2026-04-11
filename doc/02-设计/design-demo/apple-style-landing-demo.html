@@ -1,0 +1,820 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>微锐 PDF 工具 · 设计评审稿（对照线网页面）</title>
+    <link rel="stylesheet" href="assets/fonts/inter.css" />
+    <style>
+      :root {
+        /* 面向中小学家长：暖白底、薄荷与青绿主色、少量蜜橘点缀，偏轻快可信 */
+        --bg: #fffdfb;
+        --bg-muted: #f0faf8;
+        --text: #164e63;
+        --text-secondary: #5b8a9e;
+        --accent: #0d9488;
+        --accent-bright: #14b8a6;
+        --accent-warm: #f97316;
+        --border-light: #cfe8e4;
+        --nav-blur: rgba(255, 253, 251, 0.92);
+        --radius-sm: 8px;
+        --radius-lg: 20px;
+        --ease: cubic-bezier(0.25, 0.1, 0.25, 1);
+        --pad-x: clamp(1.25rem, 4vw, 2.75rem);
+        --content-max: 1100px;
+        --merge-max: 980px;
+        --nav-h: 52px;
+      }
+
+      *,
+      *::before,
+      *::after {
+        box-sizing: border-box;
+      }
+
+      html {
+        scroll-behavior: smooth;
+      }
+
+      body {
+        margin: 0;
+        padding-top: var(--nav-h);
+        font-family: "Inter", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", "Noto Sans SC", system-ui, sans-serif;
+        font-size: 17px;
+        font-weight: 400;
+        line-height: 1.47059;
+        color: var(--text);
+        background: var(--bg);
+        -webkit-font-smoothing: antialiased;
+      }
+
+      @media (prefers-reduced-motion: reduce) {
+        html {
+          scroll-behavior: auto;
+        }
+        *,
+        *::before,
+        *::after {
+          animation-duration: 0.01ms !important;
+          animation-iteration-count: 1 !important;
+          transition-duration: 0.01ms !important;
+        }
+        .parallax-inner {
+          transform: none !important;
+        }
+        .btn-primary:hover {
+          transform: none;
+        }
+      }
+
+      a {
+        color: var(--accent);
+        text-decoration: none;
+        cursor: pointer;
+        transition: opacity 0.2s var(--ease);
+      }
+
+      a:hover {
+        opacity: 0.75;
+      }
+
+      a:focus-visible {
+        outline: 2px solid var(--accent);
+        outline-offset: 3px;
+      }
+
+      .site-nav {
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        z-index: 100;
+        height: var(--nav-h);
+        padding: 0 var(--pad-x);
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 1rem;
+        background: transparent;
+        transition: background 0.35s var(--ease), backdrop-filter 0.35s var(--ease),
+          border-color 0.35s var(--ease);
+        border-bottom: 1px solid transparent;
+      }
+
+      .site-nav.scrolled {
+        background: var(--nav-blur);
+        backdrop-filter: saturate(180%) blur(20px);
+        -webkit-backdrop-filter: saturate(180%) blur(20px);
+        border-bottom-color: rgba(13, 148, 136, 0.12);
+      }
+
+      .site-nav__brand {
+        font-weight: 600;
+        font-size: 19px;
+        letter-spacing: -0.02em;
+        color: #0f766e;
+        flex-shrink: 0;
+      }
+
+      .site-nav__links {
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: flex-end;
+        gap: 0.35rem 1.25rem;
+        list-style: none;
+        margin: 0;
+        padding: 0;
+      }
+
+      .site-nav__links a {
+        font-size: 13px;
+        font-weight: 400;
+        color: var(--text);
+        opacity: 0.88;
+        white-space: nowrap;
+      }
+
+      .site-nav__links a:hover {
+        opacity: 1;
+        color: var(--accent);
+      }
+
+      .review-ribbon {
+        background: linear-gradient(90deg, var(--bg-muted) 0%, #fff7ed 50%, var(--bg-muted) 100%);
+        color: var(--text-secondary);
+        font-size: 12px;
+        padding: 0.65rem var(--pad-x);
+        border-bottom: 1px solid rgba(13, 148, 136, 0.1);
+        text-align: center;
+      }
+
+      .review-ribbon code {
+        font-size: 11px;
+        background: var(--bg);
+        padding: 0.1rem 0.35rem;
+        border-radius: var(--radius-sm);
+        border: 1px solid var(--border-light);
+      }
+
+      .page-section {
+        scroll-margin-top: calc(var(--nav-h) + 8px);
+        padding: clamp(2.5rem, 6vw, 4rem) var(--pad-x);
+        max-width: var(--content-max);
+        margin: 0 auto;
+      }
+
+      .page-section--merge {
+        max-width: var(--merge-max);
+      }
+
+      .route-label {
+        font-size: 12px;
+        font-weight: 600;
+        letter-spacing: 0.06em;
+        text-transform: uppercase;
+        color: var(--text-secondary);
+        margin: 0 0 0.5rem;
+      }
+
+      .section-title {
+        margin: 0 0 0.75rem;
+        font-size: clamp(2rem, 4vw, 2.75rem);
+        font-weight: 600;
+        letter-spacing: -0.025em;
+        line-height: 1.1;
+      }
+
+      .section-lead {
+        margin: 0 0 1.75rem;
+        font-size: 17px;
+        color: var(--text-secondary);
+        max-width: 42ch;
+      }
+
+      .shell-card {
+        background: var(--bg);
+        border: 1px solid var(--border-light);
+        border-radius: var(--radius-sm);
+        padding: 1.25rem 1.35rem;
+        margin-bottom: 1rem;
+      }
+
+      .shell-card:last-child {
+        margin-bottom: 0;
+      }
+
+      .tools-grid {
+        display: grid;
+        gap: 1rem;
+        grid-template-columns: 1fr;
+      }
+
+      @media (min-width: 768px) {
+        .tools-grid {
+          grid-template-columns: repeat(3, 1fr);
+        }
+      }
+
+      .tool-card h3 {
+        margin: 0 0 0.65rem;
+        font-size: 17px;
+        font-weight: 600;
+      }
+
+      .tool-card p {
+        margin: 0 0 1rem;
+        font-size: 17px;
+        color: var(--text-secondary);
+      }
+
+      .btn-outline {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        min-height: 44px;
+        padding: 0 1.25rem;
+        font-size: 17px;
+        font-weight: 400;
+        color: var(--accent);
+        border: 1px solid var(--border-light);
+        border-radius: var(--radius-sm);
+        background: transparent;
+        cursor: default;
+        transition: border-color 0.2s var(--ease), opacity 0.2s var(--ease), transform 0.25s var(--ease);
+      }
+
+      .btn-outline:hover {
+        border-color: var(--accent);
+        opacity: 0.92;
+        transform: scale(1.01);
+      }
+
+      .btn-primary {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        min-height: 44px;
+        padding: 0 1.35rem;
+        font-size: 17px;
+        font-weight: 600;
+        color: #fff;
+        background: linear-gradient(135deg, var(--accent) 0%, var(--accent-bright) 55%, #2dd4bf 100%);
+        border: none;
+        border-radius: var(--radius-sm);
+        box-shadow: 0 2px 12px rgba(13, 148, 136, 0.28);
+        cursor: default;
+        transition: opacity 0.2s var(--ease), transform 0.2s var(--ease), box-shadow 0.2s var(--ease);
+      }
+
+      .btn-primary:hover {
+        opacity: 0.95;
+        transform: translateY(-1px);
+        box-shadow: 0 4px 16px rgba(13, 148, 136, 0.35);
+      }
+
+      .btn-primary:disabled {
+        opacity: 0.38;
+        cursor: not-allowed;
+      }
+
+      .btn-row {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.75rem 1rem;
+        margin-top: 1rem;
+      }
+
+      .home-hero-row {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 1rem;
+        margin-bottom: 2rem;
+      }
+
+      .dropzone-mock {
+        border: 1px dashed var(--border-light);
+        border-radius: var(--radius-lg);
+        padding: 2.25rem 1.5rem;
+        text-align: center;
+        background: var(--bg);
+        transition: border-color 0.2s var(--ease), background 0.2s var(--ease);
+      }
+
+      .dropzone-mock:hover {
+        border-color: var(--accent-bright);
+        background: var(--bg-muted);
+      }
+
+      .dropzone-mock svg {
+        width: 48px;
+        height: 48px;
+        margin-bottom: 0.75rem;
+        color: var(--accent);
+      }
+
+      .dropzone-mock h3 {
+        margin: 0 0 0.35rem;
+        font-size: 20px;
+        font-weight: 600;
+        letter-spacing: -0.02em;
+      }
+
+      .dropzone-mock p {
+        margin: 0;
+        font-size: 17px;
+        color: var(--text-secondary);
+      }
+
+      .alert {
+        padding: 0.75rem 1rem;
+        border-radius: var(--radius-sm);
+        font-size: 15px;
+        line-height: 1.45;
+      }
+
+      .alert--info {
+        background: #ecfeff;
+        border: 1px solid rgba(13, 148, 136, 0.22);
+        color: var(--text);
+      }
+
+      .alert--success {
+        background: #ecfdf5;
+        border: 1px solid rgba(16, 185, 129, 0.35);
+        color: var(--text);
+      }
+
+      .alert--warning {
+        background: #fffbeb;
+        border: 1px solid rgba(251, 191, 36, 0.45);
+        color: var(--text);
+      }
+
+      .file-list {
+        border-top: 1px solid rgba(13, 148, 136, 0.1);
+        margin-top: 0.5rem;
+      }
+
+      .file-row {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: 0.75rem;
+        padding: 1rem 0;
+        border-bottom: 1px solid rgba(13, 148, 136, 0.08);
+      }
+
+      .file-row:last-child {
+        border-bottom: none;
+      }
+
+      .file-row__name {
+        font-weight: 600;
+        font-size: 15px;
+      }
+
+      .tag {
+        display: inline-block;
+        font-size: 12px;
+        font-weight: 600;
+        letter-spacing: 0.02em;
+        padding: 0.15rem 0.45rem;
+        border-radius: var(--radius-sm);
+        border: 1px solid var(--border-light);
+        color: var(--text-secondary);
+      }
+
+      .tag--ready {
+        border-color: rgba(13, 148, 136, 0.45);
+        color: #0f766e;
+        background: rgba(204, 251, 241, 0.9);
+      }
+
+      .file-row__actions {
+        display: flex;
+        gap: 0.5rem;
+        flex-wrap: wrap;
+      }
+
+      .file-row__actions button {
+        font-size: 12px;
+        padding: 0.25rem 0.5rem;
+        border: 1px solid var(--border-light);
+        border-radius: var(--radius-sm);
+        background: var(--bg);
+        color: var(--text-secondary);
+        cursor: default;
+      }
+
+      .progress-block {
+        margin-top: 0.75rem;
+      }
+
+      .progress-block__stage {
+        font-size: 17px;
+        margin-bottom: 0.35rem;
+      }
+
+      .progress-block__meta {
+        font-size: 15px;
+        color: var(--text-secondary);
+        margin: 0.35rem 0 0.75rem;
+      }
+
+      .progress-track {
+        height: 8px;
+        border-radius: 999px;
+        background: #ccfbf1;
+        overflow: hidden;
+      }
+
+      .progress-track__fill {
+        height: 100%;
+        width: 55%;
+        border-radius: 999px;
+        background: linear-gradient(90deg, var(--accent) 0%, var(--accent-warm) 100%);
+        transition: width 0.4s var(--ease);
+      }
+
+      .muted-note {
+        font-size: 13px;
+        color: var(--text-secondary);
+        margin: 1rem 0 0;
+      }
+
+      .form-stack label {
+        display: block;
+        font-size: 15px;
+        font-weight: 600;
+        margin: 1rem 0 0.35rem;
+      }
+
+      .form-stack label:first-of-type {
+        margin-top: 0;
+      }
+
+      .form-stack input,
+      .form-stack select,
+      .form-stack textarea {
+        width: 100%;
+        max-width: 100%;
+        font-size: 17px;
+        font-family: inherit;
+        padding: 0.55rem 0.65rem;
+        border: 1px solid var(--border-light);
+        border-radius: var(--radius-sm);
+        color: var(--text);
+        background: #fff;
+      }
+
+      .form-stack textarea {
+        min-height: 140px;
+        resize: vertical;
+      }
+
+      .result-kv {
+        margin: 0.35rem 0;
+        font-size: 17px;
+      }
+
+      .bleed {
+        width: 100%;
+        overflow: hidden;
+        background: var(--bg-muted);
+      }
+
+      .parallax-wrap {
+        position: relative;
+        height: min(48vh, 520px);
+        overflow: hidden;
+      }
+
+      .parallax-inner {
+        position: absolute;
+        inset: -6% 0;
+        will-change: transform;
+        transition: transform 0.15s linear;
+      }
+
+      .parallax-inner img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        display: block;
+      }
+
+      .site-footer {
+        padding: 2rem var(--pad-x) 2.5rem;
+        font-size: 13px;
+        color: var(--text-secondary);
+        text-align: center;
+        border-top: 1px solid rgba(13, 148, 136, 0.12);
+        max-width: var(--content-max);
+        margin: 0 auto;
+      }
+
+      /* /tools 区块：浅色柔和底，避免整块重色 */
+      .section-tools-band {
+        background: linear-gradient(180deg, #f8fdfc 0%, #f0fdfa 35%, #ecfeff 70%, #f8fdfc 100%);
+        color: var(--text);
+        max-width: none;
+        padding-left: var(--pad-x);
+        padding-right: var(--pad-x);
+        border-top: 1px solid rgba(13, 148, 136, 0.1);
+        border-bottom: 1px solid rgba(13, 148, 136, 0.1);
+      }
+
+      .section-tools-band .route-label {
+        color: var(--text-secondary);
+      }
+
+      .section-tools-band .section-title,
+      .section-tools-band .section-lead {
+        color: inherit;
+      }
+
+      .section-tools-band .section-lead {
+        color: var(--text-secondary);
+      }
+
+      .section-tools-band .shell-card {
+        background: #fff;
+        border-color: rgba(13, 148, 136, 0.16);
+        box-shadow: 0 2px 14px rgba(13, 148, 136, 0.06);
+      }
+
+      .section-tools-band .tool-card h3 {
+        color: var(--text);
+      }
+
+      .section-tools-band .tool-card p {
+        color: var(--text-secondary);
+      }
+
+      .section-tools-inner {
+        max-width: var(--content-max);
+        margin: 0 auto;
+      }
+    </style>
+  </head>
+  <body>
+    <header class="site-nav" id="siteNav" role="banner">
+      <a href="#home" class="site-nav__brand">微锐</a>
+      <nav aria-label="主导航">
+        <ul class="site-nav__links">
+          <li><a href="#home">首页</a></li>
+          <li><a href="#merge">PDF 合并</a></li>
+          <li><a href="#tools">工具列表</a></li>
+          <li><a href="#feedback">意见反馈</a></li>
+          <li><a href="#result">处理结果</a></li>
+        </ul>
+      </nav>
+    </header>
+
+    <p class="review-ribbon">
+      静态评审稿 · 文案与信息结构对齐线网：
+      <code>/</code> <code>/merge</code> <code>/tools</code> <code>/feedback</code> <code>/result/:taskId</code>
+      · 字体与横幅配图已打包在 <code>assets/</code> 内，可断网打开本页
+    </p>
+
+    <main>
+      <!-- 首页：src/app/page.tsx -->
+      <section id="home" class="page-section" aria-labelledby="home-title">
+        <p class="route-label">路由 /</p>
+        <h1 id="home-title" class="section-title">一站式 PDF 处理</h1>
+        <p class="section-lead">上传、排序、处理、下载，5 步完成任务闭环。</p>
+        <div class="home-hero-row">
+          <a class="btn-primary" href="#merge">立即体验合并</a>
+          <a class="btn-outline" href="#tools">查看工具列表</a>
+        </div>
+        <div class="tools-grid">
+          <div class="shell-card tool-card">
+            <h3>PDF 合并</h3>
+            <p>按顺序拼接多个 PDF，输出单个结果文件。</p>
+          </div>
+          <div class="shell-card tool-card">
+            <h3>PDF 压缩</h3>
+            <p>降低体积，适合邮件传输与归档。</p>
+          </div>
+          <div class="shell-card tool-card">
+            <h3>PDF 拆分</h3>
+            <p>按页拆分或批量提取目标区间。</p>
+          </div>
+        </div>
+      </section>
+
+      <div class="bleed" data-parallax aria-hidden="true">
+        <div class="parallax-wrap">
+          <div class="parallax-inner">
+            <img
+              src="assets/images/hero-bleed.jpg"
+              alt="校园与学习场景配图（本地文件）"
+              width="1600"
+              height="1067"
+              decoding="async"
+            />
+          </div>
+        </div>
+      </div>
+
+      <!-- 合并页：src/app/merge/page.tsx + 子组件文案 -->
+      <section id="merge" class="page-section page-section--merge" aria-labelledby="merge-label">
+        <p class="route-label">路由 /merge</p>
+        <p id="merge-label" class="section-title" style="font-size: 1.5rem">PDF 合并</p>
+        <p class="section-lead" style="margin-bottom: 1.25rem">
+          对应线网：上传区 → 列表排序 → 进度 →「开始合并」/ 成功后面板。
+        </p>
+
+        <div class="shell-card dropzone-mock" aria-label="上传区域（示意）">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.3" aria-hidden="true">
+            <path d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14" stroke-linecap="round" />
+            <path d="M4 20h16a1 1 0 001-1V8l-4-4H4a1 1 0 00-1 1v14a1 1 0 001 1z" stroke-linejoin="round" />
+          </svg>
+          <h3>拖拽 PDF 到此处，或点击选择文件</h3>
+          <p>至少添加 2 个 PDF 文件后可开始合并</p>
+        </div>
+
+        <div class="shell-card" style="margin-top: 1rem">
+          <p class="muted-note" style="margin-top: 0">
+            线网：仅当尚未添加文件时展示 Alert「至少添加 2 个 PDF 文件后可开始合并」。下列表对应
+            <code style="font-size: 11px">FileListSortable</code>（READY 与上移/下移/删除）。
+          </p>
+          <div class="file-list">
+            <div class="file-row">
+              <div>
+                <span class="file-row__name">采购合同-甲方.pdf</span>
+                <span class="tag tag--ready" style="margin-left: 0.5rem">READY</span>
+              </div>
+              <div class="file-row__actions">
+                <button type="button">上移</button>
+                <button type="button">下移</button>
+                <button type="button">删除</button>
+              </div>
+            </div>
+            <div class="file-row">
+              <div>
+                <span class="file-row__name">技术附件-附录.pdf</span>
+                <span class="tag tag--ready" style="margin-left: 0.5rem">READY</span>
+              </div>
+              <div class="file-row__actions">
+                <button type="button">上移</button>
+                <button type="button">下移</button>
+                <button type="button">删除</button>
+              </div>
+            </div>
+            <div class="file-row">
+              <div>
+                <span class="file-row__name">签字页.pdf</span>
+                <span class="tag tag--ready" style="margin-left: 0.5rem">READY</span>
+              </div>
+              <div class="file-row__actions">
+                <button type="button">上移</button>
+                <button type="button">下移</button>
+                <button type="button">删除</button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="shell-card" style="margin-top: 1rem">
+          <p class="muted-note" style="margin-top: 0">合并进度（线网：MergeProgress · 处理中示例）</p>
+          <div class="progress-block">
+            <p class="progress-block__stage">正在处理任务...</p>
+            <p class="progress-block__meta">共 3 个文件 · 已并入 1 个 · 约 1 个待处理 · 正在处理：技术附件-附录.pdf</p>
+            <div class="progress-track" aria-hidden="true">
+              <div class="progress-track__fill"></div>
+            </div>
+          </div>
+          <p class="muted-note">线网：PROCESSING 时进度条比例按已并入/总数计算；此处为静态示意。</p>
+        </div>
+
+        <div class="shell-card" style="margin-top: 1rem">
+          <p class="muted-note" style="margin-top: 0">排队提示（线网：MergeProgress · status === QUEUED 且 total &gt; 0）</p>
+          <div class="alert alert--warning" style="margin-top: 0.5rem">
+            任务在队列中。若超过约 30 秒仍无「已并入」或「正在处理」变化，请到
+            <a href="#feedback">反馈问题</a>，我们会尽快处理。
+          </div>
+        </div>
+
+        <div class="shell-card" style="margin-top: 1rem">
+          <p class="muted-note" style="margin-top: 0">成功态（线网：MergeResultPanel）</p>
+          <p style="margin: 0 0 0.35rem; font-size: 19px; font-weight: 600">合并完成</p>
+          <p style="margin: 0 0 1rem; font-size: 17px">合并-1775924782839.pdf</p>
+          <div class="btn-row">
+            <span class="btn-primary">下载文件</span>
+            <span class="btn-outline">再合并一组</span>
+          </div>
+        </div>
+
+        <div class="btn-row" style="margin-top: 1.25rem">
+          <span class="btn-primary">开始合并</span>
+          <span class="muted-note" style="margin: 0; align-self: center">线网：≥2 个 READY 且非上传中可点；排队/处理中显示「正在合并...」并 loading。</span>
+        </div>
+      </section>
+
+      <!-- 工具列表：src/app/tools/page.tsx -->
+      <section id="tools" class="page-section section-tools-band" aria-labelledby="tools-title">
+        <div class="section-tools-inner">
+          <p class="route-label">路由 /tools</p>
+          <h2 id="tools-title" class="section-title">工具列表</h2>
+          <p class="section-lead">与线网三列卡片一致；压缩/拆分为「规划中」。</p>
+          <div class="tools-grid">
+            <div class="shell-card tool-card">
+              <h3>PDF 合并</h3>
+              <p>上传多个 PDF，排序后合并下载。</p>
+              <a class="btn-primary" href="#merge">进入</a>
+            </div>
+            <div class="shell-card tool-card">
+              <h3>PDF 压缩</h3>
+              <p>规划中</p>
+            </div>
+            <div class="shell-card tool-card">
+              <h3>PDF 拆分</h3>
+              <p>规划中</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- 意见反馈：src/app/feedback/page.tsx -->
+      <section id="feedback" class="page-section" aria-labelledby="feedback-title" style="max-width: 720px">
+        <p class="route-label">路由 /feedback</p>
+        <h2 id="feedback-title" class="section-title">意见反馈</h2>
+        <p class="section-lead" style="max-width: none">
+          遇到问题请尽量描述操作步骤、现象与期望结果。可选填联系方式便于我们回复（仅用于沟通本次反馈，不做营销用途）。
+        </p>
+        <div class="alert alert--info" style="margin-bottom: 1rem">
+          我们不会收集上传令牌、完整文件路径等敏感信息；仅保存您填写的内容与页面等基础上下文。
+        </div>
+        <div class="shell-card">
+          <div class="form-stack">
+            <label for="fb-cat">问题类型</label>
+            <select id="fb-cat" disabled aria-disabled="true">
+              <option>请选择（可选）</option>
+              <option selected>PDF 合并</option>
+              <option>上传 / 文件列表</option>
+              <option>其他</option>
+            </select>
+            <label for="fb-contact">联系方式（选填）</label>
+            <input id="fb-contact" type="text" disabled placeholder="邮箱、手机或昵称" value="" />
+            <label for="fb-content">问题描述</label>
+            <textarea id="fb-content" disabled placeholder="请描述遇到的问题…">静态稿不提交接口；此处仅展示表单结构。</textarea>
+          </div>
+          <div class="btn-row" style="margin-top: 1.25rem">
+            <span class="btn-primary">提交反馈</span>
+          </div>
+        </div>
+      </section>
+
+      <!-- 结果页：src/app/result/[taskId]/page.tsx -->
+      <section id="result" class="page-section" aria-labelledby="result-title">
+        <p class="route-label">路由 /result/:taskId</p>
+        <h2 id="result-title" class="section-title">处理结果</h2>
+        <div class="shell-card">
+          <div class="alert alert--success" style="margin-bottom: 1rem">合并成功，结果文件已生成</div>
+          <p class="result-kv"><strong>任务 ID：</strong>550e8400-e29b-41d4-a716-446655440000</p>
+          <p class="result-kv"><strong>文件名：</strong>合并-1775924782839.pdf</p>
+          <p class="muted-note">线网：无 token 时「下载文件」禁用；此处为示意。</p>
+          <div class="btn-row">
+            <span class="btn-primary">下载文件</span>
+            <a class="btn-outline" href="#merge">再合并一组</a>
+            <a class="btn-outline" href="#tools">返回工具列表</a>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <footer class="site-footer">PDF 工具集 · 微锐科技设计落地（线网 AppShell Footer 文案）</footer>
+
+    <script>
+      (function () {
+        var nav = document.getElementById("siteNav");
+        function onScroll() {
+          nav.classList.toggle("scrolled", window.scrollY > 8);
+        }
+        window.addEventListener("scroll", onScroll, { passive: true });
+        onScroll();
+
+        var reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+        if (reduce) return;
+        var els = document.querySelectorAll("[data-parallax] .parallax-inner");
+        function parallax() {
+          var vh = window.innerHeight;
+          els.forEach(function (el) {
+            var wrap = el.closest("[data-parallax]");
+            if (!wrap) return;
+            var rect = wrap.getBoundingClientRect();
+            var center = rect.top + rect.height / 2;
+            var progress = (center - vh / 2) / (vh + rect.height);
+            var y = progress * 40;
+            el.style.transform = "translate3d(0, " + y.toFixed(1) + "px, 0)";
+          });
+        }
+        window.addEventListener("scroll", parallax, { passive: true });
+        window.addEventListener("resize", parallax, { passive: true });
+        parallax();
+      })();
+    </script>
+  </body>
+</html>

@@ -1,14 +1,152 @@
+/* 设计评审稿 doc/design-demo/apple-style-landing-demo.html 对齐：家长向、薄荷青绿主色 */
+
 :root {
   color-scheme: light;
+  --color-bg: #fffdfb;
+  --color-bg-muted: #f0faf8;
+  --color-text: #164e63;
+  --color-text-secondary: #5b8a9e;
+  --color-accent: #0d9488;
+  --color-accent-bright: #14b8a6;
+  --color-accent-warm: #f97316;
+  --color-border: #cfe8e4;
+  --header-blur-bg: rgba(255, 253, 251, 0.92);
 }
 
 * {
   box-sizing: border-box;
 }
 
+html,
+body {
+  max-width: 100vw;
+}
+
 body {
   margin: 0;
-  font-family: "Plus Jakarta Sans", "PingFang SC", "Microsoft YaHei", sans-serif;
-  background: #ecfeff;
-  color: #164e63;
+  font-family: var(--font-inter), "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", "Noto Sans SC", system-ui,
+    sans-serif;
+  background: var(--color-bg);
+  color: var(--color-text);
+  -webkit-font-smoothing: antialiased;
+  overflow-x: clip;
+}
+
+/* —— 顶栏（与 AppShell 中 class 配合）—— */
+.app-shell-header {
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  transition: background 0.25s ease, border-color 0.25s ease, backdrop-filter 0.25s ease;
+}
+
+.app-shell-header--scrolled {
+  background: var(--header-blur-bg) !important;
+  backdrop-filter: saturate(180%) blur(16px);
+  -webkit-backdrop-filter: saturate(180%) blur(16px);
+  border-bottom-color: rgba(13, 148, 136, 0.12) !important;
+}
+
+/* —— 主按钮渐变（与设计 demo 一致）—— */
+.ant-btn-primary:not(:disabled):not(.ant-btn-dangerous) {
+  background: linear-gradient(135deg, #0d9488 0%, #14b8a6 55%, #2dd4bf 100%) !important;
+  border: none !important;
+  box-shadow: 0 2px 12px rgba(13, 148, 136, 0.28);
+}
+
+.ant-btn-primary:not(:disabled):not(.ant-btn-dangerous):hover {
+  opacity: 0.95 !important;
+  box-shadow: 0 4px 16px rgba(13, 148, 136, 0.35) !important;
+}
+
+/* —— 次要按钮：与设计 demo 灰描边 + 主色字（排除 icon-only / link / dashed / danger）—— */
+.ant-btn.ant-btn-default:not(.ant-btn-dangerous):not(.ant-btn-dashed):not(.ant-btn-link):not(.ant-btn-text):not(
+    .ant-btn-icon-only
+  ) {
+  color: #0d9488 !important;
+  border-color: #d2d2d7 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+}
+
+.ant-btn.ant-btn-default:not(.ant-btn-dangerous):not(.ant-btn-dashed):not(.ant-btn-link):not(.ant-btn-text):not(
+    .ant-btn-icon-only
+  ):not(:disabled):hover {
+  color: #0d9488 !important;
+  border-color: #0d9488 !important;
+  background: transparent !important;
+  opacity: 0.92;
+}
+
+.ant-btn.ant-btn-default:not(.ant-btn-dangerous):not(.ant-btn-dashed):not(.ant-btn-link):not(.ant-btn-text):not(
+    .ant-btn-icon-only
+  ):not(:disabled):focus-visible {
+  border-color: #0d9488 !important;
+}
+
+.ant-btn.ant-btn-default.ant-btn-icon-only:not(:disabled):not(.ant-btn-dangerous):not(.ant-btn-text) {
+  color: #5b8a9e !important;
+  border-color: #e2e8f0 !important;
+  background: #fff !important;
+}
+
+/* —— 上传拖拽区 —— */
+.pdf-upload-dragger.ant-upload-wrapper .ant-upload-drag {
+  border-radius: 20px !important;
+  border-color: var(--color-border) !important;
+  background: #fff !important;
+  transition: border-color 0.2s ease, background 0.2s ease;
+}
+
+.pdf-upload-dragger.ant-upload-wrapper .ant-upload-drag:hover {
+  border-color: var(--color-accent-bright) !important;
+  background: var(--color-bg-muted) !important;
+}
+
+.pdf-upload-dragger .ant-upload-drag-icon {
+  color: var(--color-accent) !important;
+}
+
+/* —— 工具列表页浅色带（全宽出血，相对父级水平居中）—— */
+.page-tools-band {
+  position: relative;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 100vw;
+  max-width: 100vw;
+  padding: clamp(1.5rem, 4vw, 2.25rem) 0 clamp(2rem, 5vw, 2.75rem);
+  box-sizing: border-box;
+  background: linear-gradient(180deg, #f8fdfc 0%, #f0fdfa 35%, #ecfeff 70%, #f8fdfc 100%);
+  border-top: 1px solid rgba(13, 148, 136, 0.1);
+  border-bottom: 1px solid rgba(13, 148, 136, 0.1);
+}
+
+.page-tools-band__inner {
+  max-width: 1100px;
+  margin: 0 auto;
+  width: 100%;
+  padding: 0 16px;
+  box-sizing: border-box;
+}
+
+.page-tools-band .ant-card {
+  border-color: rgba(13, 148, 136, 0.16);
+  box-shadow: 0 2px 14px rgba(13, 148, 136, 0.06);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .app-shell-header {
+    transition: none;
+  }
+
+  .ant-btn-primary:not(:disabled):not(.ant-btn-dangerous):hover {
+    transform: none;
+  }
+
+  .page-tools-band {
+    left: auto;
+    transform: none;
+    width: 100%;
+    max-width: 100%;
+  }
 }

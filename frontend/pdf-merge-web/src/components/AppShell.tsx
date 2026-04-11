@@ -19,12 +19,19 @@ export function AppShell({ children, activeKey }: { children: ReactNode; activeK
   const screens = Grid.useBreakpoint();
   const [mounted, setMounted] = useState(false);
   const [drawerOpen, setDrawerOpen] = useState(false);
+  const [headerScrolled, setHeaderScrolled] = useState(false);
 
   useEffect(() => {
     setMounted(true);
   }, []);
 
-  // 首屏与 SSR 一致用桌面导航，避免 hydration 与断点不一致；挂载后再按屏宽切换
+  useEffect(() => {
+    const onScroll = () => setHeaderScrolled(window.scrollY > 8);
+    window.addEventListener("scroll", onScroll, { passive: true });
+    onScroll();
+    return () => window.removeEventListener("scroll", onScroll);
+  }, []);
+
   const isMobile = mounted && !screens.md;
 
   const desktopMenuItems = useMemo(
@@ -49,12 +56,15 @@ export function AppShell({ children, activeKey }: { children: ReactNode; activeK
     []
   );
 
+  const headerClass = ["app-shell-header", headerScrolled ? "app-shell-header--scrolled" : ""].filter(Boolean).join(" ");
+
   return (
     <Layout style={{ minHeight: "100vh" }}>
       <Header
+        className={headerClass}
         style={{
-          background: "#ffffff",
-          borderBottom: "1px solid #e6f4f1",
+          background: "#fffdfb",
+          borderBottom: "1px solid rgba(13, 148, 136, 0.12)",
           paddingInline: 16,
           height: 56,
           lineHeight: "56px"
@@ -76,9 +86,10 @@ export function AppShell({ children, activeKey }: { children: ReactNode; activeK
             href="/"
             onClick={() => setDrawerOpen(false)}
             style={{
-              color: "#164e63",
-              fontWeight: 700,
-              fontSize: 18,
+              color: "#0f766e",
+              fontWeight: 600,
+              fontSize: 19,
+              letterSpacing: "-0.02em",
               whiteSpace: "nowrap",
               flexShrink: 0,
               lineHeight: 1.2,
@@ -93,7 +104,7 @@ export function AppShell({ children, activeKey }: { children: ReactNode; activeK
             <>
               <Button
                 type="text"
-                icon={<MenuOutlined style={{ fontSize: 20 }} />}
+                icon={<MenuOutlined style={{ fontSize: 20, color: "#164e63" }} />}
                 aria-label="打开导航菜单"
                 onClick={() => setDrawerOpen(true)}
                 style={{ flexShrink: 0, width: 44, height: 44 }}
@@ -125,7 +136,8 @@ export function AppShell({ children, activeKey }: { children: ReactNode; activeK
                 minWidth: 0,
                 borderBottom: "none",
                 justifyContent: "flex-end",
-                lineHeight: "56px"
+                lineHeight: "56px",
+                background: "transparent"
               }}
             />
           )}
@@ -134,8 +146,8 @@ export function AppShell({ children, activeKey }: { children: ReactNode; activeK
       <Content style={{ padding: "24px 16px" }}>
         <div style={{ maxWidth: 1100, margin: "0 auto" }}>{children}</div>
       </Content>
-      <Footer style={{ textAlign: "center", color: "#4a7f8b" }}>
-        PDF 工具集  · 微锐科技设计落地
+      <Footer style={{ textAlign: "center", color: "#5b8a9e", borderTop: "1px solid rgba(13, 148, 136, 0.12)" }}>
+        PDF 工具集 · 微锐科技设计落地
       </Footer>
     </Layout>
   );

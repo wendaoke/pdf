@@ -73,7 +73,12 @@ export function MergeProgress({
           {detailParts.join(" · ")}
         </Typography.Paragraph>
       )}
-      <Progress percent={percent} status="active" />
+      <Progress
+        percent={percent}
+        status="active"
+        strokeColor={{ "0%": "#0d9488", "100%": "#f97316" }}
+        trailColor="#ccfbf1"
+      />
     </div>
   );
 }
